@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria de Segurança do Paciente - Qualidade Assistencial</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs com as suas chaves configuradas -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ==========================================
+        // CONFIGURAÇÃO DO SEU FIREBASE (AUDITORIAAPP2)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7OSII6uUJ0opsZF3TTIvwpPD9PQfRH8A",
+            authDomain: "auditoriaapp2.firebaseapp.com",
+            projectId: "auditoriaapp2",
+            storageBucket: "auditoriaapp2.firebasestorage.app",
+            messagingSenderId: "988965138130",
+            appId: "1:988965138130:web:03dcfb25822a0bc1a0070b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.fbDb = db;
+        window.fbCollection = collection;
+        window.fbAddDoc = addDoc;
+        window.fbDeleteDoc = deleteDoc;
+        window.fbDoc = doc;
+        window.fbUpdateDoc = updateDoc;
+        window.fbOnSnapshot = onSnapshot;
+
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media (max-width: 640px) {
+            table th, table td { padding: 8px 6px !important; font-size: 11px !important; }
+        }
+        @media print {
+            body { background: white; }
+            header, nav, button, .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            
+            main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            section { display: block !important; page-break-inside: avoid; margin-bottom: 20px; }
+            table { page-break-inside: auto; width: 100% !important; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            td, th { font-size: 11px !important; padding: 6px !important; }
+            #section-history, #detail-modal {
+                position: static !important;
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+            }
+            div { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Cabeçalho Principal -->
+    <header class="bg-blue-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <i class="fa-solid fa-hospital-user text-2xl text-blue-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold leading-tight">Gestão de Qualidade & Segurança</h1>
+                    <p class="text-xs text-blue-200">Metas Internacionais (OPAS/OMS) - Sincronizado</p>
+                </div>
+            </div>
+            <!-- Navegação por Abas -->
+            <nav class="flex bg-blue-900/60 p-1.5 rounded-xl gap-1.5 border border-blue-700/50 flex-wrap justify-center">
+                <button onclick="switchTab('audit')" id="tab-audit" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all bg-white text-blue-900 shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check"></i> Nova Auditoria
+                </button>
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </button>
+                <button onclick="switchTab('history')" id="tab-history" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Histórico & Relatórios
+                </button>
+                <button onclick="switchTab('actionplans')" id="tab-actionplans" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> Plano de Ação 5W2H
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-grow">
+
+        <!-- ALERTA DE MENSAGEM CUSTOMIZADO -->
+        <div id="custom-alert" class="hidden mb-6 p-4 rounded-xl border flex items-center justify-between transition-all shadow-sm">
+            <div class="flex items-center gap-3">
+                <i id="alert-icon" class="text-xl"></i>
+                <span id="alert-message" class="text-sm font-medium"></span>
+            </div>
+            <button onclick="closeAlert()" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- SEÇÃO 1: FORMULÁRIO DE AUDITORIA -->
+        <section id="section-audit" class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider">
+                    <i class="fa-solid fa-id-card text-blue-600"></i> Identificação da Auditoria Assistencial
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Setor / Unidade *</label>
+                        <input type="text" id="audit-setor" placeholder="Ex: UTI Adulto, Clínica Médica" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Leito / Quarto *</label>
+                        <input type="text" id="audit-leito" placeholder="Ex: Leito 12-B" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Data da Auditoria *</label>
+                        <input type="date" id="audit-data" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Enfermeiro(a) Auditor(a) *</label>
+                        <input type="text" id="audit-enfermeiro" placeholder="Nome do profissional" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTAINER DAS METAS -->
+            <div id="goals-container" class="space-y-6">
+                <!-- Preenchido via Script -->
+            </div>
+
+            <!-- ASSINATURA DIGITAL DO AUDITOR -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-signature text-blue-600"></i> Assinatura Digital do Auditor
+                    </h3>
+                    <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-eraser"></i> Limpar Assinatura
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 mb-2">Desenhe sua rubrica ou assinatura no espaço abaixo:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden bg-slate-50 inline-block w-full">
+                    <canvas id="signature-pad" class="w-full h-32 cursor-crosshair touch-none"></canvas>
+                </div>
+            </div>
+
+            <!-- BOTÃO SALVAR AUDITORIA -->
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="resetForm()" class="px-5 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Limpar Formulário
+                </button>
+                <button onclick="saveAudit()" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Auditoria e Gerar Indicadores
+                </button>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 2: DASHBOARD DE INDICADORES -->
+        <section id="section-dashboard" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col lg:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3 w-full lg:w-auto flex-wrap">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Filtrar por Setor</label>
+                        <select id="filter-setor" onchange="renderDashboard()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="">Todos os Setores</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Período Rápido</label>
+                        <select id="filter-periodo" onchange="renderDashboard()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="all">Todo o Período</option>
+                            <option value="today">Hoje</option>
+                            <option value="7days">Últimos 7 Dias</option>
+                            <option value="month">Este Mês</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="custom-date-container" class="hidden flex items-center gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">De:</label>
+                            <input type="date" id="filter-date-start" onchange="renderDashboard()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Até:</label>
+                            <input type="date" id="filter-date-end" onchange="renderDashboard()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+                    <button onclick="exportCSV()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i> Exportar CSV
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-print"></i> Relatório Executivo (PDF)
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="bg-blue-100 text-blue-700 p-4 rounded-xl text-2xl">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pontuação Geral</p>
+                        <h3 id="kpi-pontuacao-geral" class="text-2xl font-bold text-slate-800">0.0%</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="bg-emerald-100 text-emerald-700 p-4 rounded-xl text-2xl">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Auditorias</p>
+                        <h3 id="kpi-total-auditorias" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="bg-rose-100 text-rose-700 p-4 rounded-xl text-2xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Não Conformes</p>
+                        <h3 id="kpi-total-nc" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="bg-indigo-100 text-indigo-700 p-4 rounded-xl text-2xl">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ações 5W2H Resolvidas</p>
+                        <h3 id="kpi-actions-rate" class="text-2xl font-bold text-slate-800">0%</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-bar text-blue-600"></i> Conformidade Média por Meta (%)
+                    </h3>
+                    <div id="chart-container" class="space-y-4 pt-2"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                            <i class="fa-solid fa-lightbulb text-amber-500"></i> Recomendações para Melhoria
+                        </h3>
+                        <div id="quality-recommendations" class="space-y-3 text-sm text-slate-600"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Ranking de Setores -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-ranking-star text-blue-600"></i> Desempenho por Unidade / Setor (Média)
+                    </h3>
+                    <div id="setor-ranking-container" class="space-y-3"></div>
+                </div>
+
+                <!-- Top 5 Itens Mais Críticos (Não Conformes) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-exclamation text-rose-600"></i> Top 5 Itens Mais Críticos (Não Conformes)
+                    </h3>
+                    <div id="top-failures-container" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- EFICÁCIA DOS PLANOS DE AÇÃO 5W2H -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i> Status dos Planos de Ação Corretiva
+                </h3>
+                <div id="action-status-container" class="space-y-3 pt-2"></div>
+            </div>
+
+            <!-- COMPARAÇÃO MENSAL POR UNIDADE / SETOR -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-calendar-days text-blue-600"></i> Comparativo Mensal por Unidade / Setor (%)
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">Mês / Ano</th>
+                                <th class="p-3">Unidade / Setor</th>
+                                <th class="p-3 text-center">Média de Pontuação</th>
+                                <th class="p-3 text-center">Total de Auditorias</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-comparison-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 3: HISTÓRICO -->
+        <section id="section-history" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b pb-4">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Histórico Completo de Auditorias
+                    </h3>
+                    <button onclick="clearHistory()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs transition-all flex items-center gap-2 border border-rose-200">
+                        <i class="fa-solid fa-trash-can"></i> Limpar Histórico
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Setor / Leito</th>
+                                <th class="p-3">Enfermeiro(a)</th>
+                                <th class="p-3 text-center">Pontuação Geral</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 4: PLANO DE AÇÃO 5W2H POR SETOR -->
+        <section id="section-actionplans" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b pb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                            <i class="fa-solid fa-list-check text-blue-600"></i> Plano de Ação 5W2H por Setor
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Gerenciamento de não conformidades filtrado por unidade assistencial.</p>
+                    </div>
+                    <div class="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
+                        <div>
+                            <select id="filter-action-setor" onchange="renderActionPlans()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                                <option value="">Todos os Setores</option>
+                            </select>
+                        </div>
+                        <button onclick="openNewActionModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Novo Plano de Ação
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">O quê (Ação)</th>
+                                <th class="p-3">Por quê (Justificativa)</th>
+                                <th class="p-3">Onde (Setor)</th>
+                                <th class="p-3">Quem (Responsável)</th>
+                                <th class="p-3">Prazo</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actionplans-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Detalhes -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-blue-600"></i> Detalhes da Auditoria Assistencial
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-content" class="space-y-4 text-sm"></div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold text-xs transition-all flex items-center gap-2"><i class="fa-solid fa-print"></i> Imprimir Relatório</button>
+                <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-xs transition-all">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Plano de Ação -->
+    <div id="action-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i> Novo Plano de Ação 5W2H
+                </h3>
+                <button onclick="closeActionModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">What (O que será feito?) *</label>
+                    <input type="text" id="action-what" placeholder="Ex: Realizar reciclagem" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Why (Por quê / Justificativa) *</label>
+                    <input type="text" id="action-why" placeholder="Ex: Reduzir não conformidades" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Where (Setor) *</label>
+                        <input type="text" id="action-where" placeholder="Ex: UTI Adulto" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Who (Responsável) *</label>
+                        <input type="text" id="action-who" placeholder="Ex: Enf. Coordenadora" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">When (Prazo) *</label>
+                        <input type="date" id="action-when" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">How (Como)</label>
+                        <input type="text" id="action-how" placeholder="Ex: Reunião" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+                        <select id="action-status" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-white">
+                            <option value="Pendente">Pendente</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Concluído">Concluído</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="closeActionModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-xs transition-all">Cancelar</button>
+                <button onclick="saveActionPlan()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-sm">Salvar Plano de Ação</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-center text-xs text-slate-400">
+        <p>Plataforma de Auditoria e Qualidade Assistencial &bull; Metas Internacionais de Segurança do Paciente</p>
+    </footer>
+
+    <!-- Script Principal com Modo Offline / LocalStorage Integrado -->
+    <script>
+        const metasConfig = [
+            {
+                id: 'meta1',
+                title: 'Meta 1 – Identificação Correta',
+                formulaNote: 'Fórmula: (Itens conf. ÷ Válidos) × 100',
+                items: ['Pulseira presente', 'Pulseira dados legíveis', 'Quadro no leito (Nome/DN)', 'Identif. verbal (consciente)']
+            },
+            {
+                id: 'meta2',
+                title: 'Meta 2 – Comunicação Efetiva',
+                formulaNote: 'Fórmula: (Passagem efet. ÷ Audit.) × 100',
+                items: ['Passagem de plantão (registro)', 'Comunicação verbal enfermagem']
+            },
+            {
+                id: 'meta3',
+                title: 'Meta 3 – Segurança na Medicação',
+                formulaNote: 'Fórmula: (Checagens conf. ÷ Realiz.) × 100',
+                items: ['Prescrição x Adm. correta', 'Frascos multidoses identificados', 'Alta vigilância sinalizados']
+            },
+            {
+                id: 'meta5',
+                title: 'Meta 5 – Higienização das Mãos',
+                formulaNote: 'Fórmula: (Oport. conf. ÷ Observ.) × 100',
+                items: ['1º Momento: Antes contato', '2º Momento: Antes proced. limpo', '3º Momento: Após fluidos', '4º Momento: Após contato', '5º Momento: Áreas próximas']
+            },
+            {
+                id: 'meta6a',
+                title: 'Meta 6A – Prevenção de Quedas',
+                formulaNote: 'Fórmula: (Quedas conf. ÷ Válidos) × 100',
+                items: ['Avaliação risco (Morse/Humpty)', 'Pulseira risco queda (amarela)', 'Grades do leito elevadas', 'Campainha acessível', 'Placa/identif. de queda', 'Paciente/acompanhante orientados']
+            },
+            {
+                id: 'meta6b',
+                title: 'Meta 6B – Prevenção de LPP',
+                formulaNote: 'Fórmula: (LPP conf. ÷ Válidos) × 100',
+                items: ['Avaliação risco LPP (Braden)', 'Mudança decúbito prescrita', 'Paciente conforme o relógio (horário correto)', 'Superfícies de apoio (colchão)', 'Pele íntegra / proeminências']
+            }
+        ];
+
+        // Carregar cache inicial do LocalStorage se existir (Modo Offline)
+        let auditHistoryCache = JSON.parse(localStorage.getItem('auditHistoryCache')) || [];
+        let actionPlansCache = JSON.parse(localStorage.getItem('actionPlansCache')) || [];
+        let signatureCanvas, signatureCtx, isDrawing = false;
+
+        window.addEventListener('firebase-ready', function() {
+            document.getElementById('audit-data').valueAsDate = new Date();
+            renderAuditForm();
+            initSignaturePad();
+            initRealtimeListeners();
+            renderDashboard();
+            renderHistory();
+            renderActionPlans();
+        });
+
+        function initRealtimeListeners() {
+            try {
+                window.fbOnSnapshot(window.fbCollection(window.fbDb, "auditorias"), (snapshot) => {
+                    auditHistoryCache = [];
+                    snapshot.forEach((docSnap) => {
+                        auditHistoryCache.push({ fbId: docSnap.id, ...docSnap.data() });
+                    });
+                    auditHistoryCache.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                    renderDashboard();
+                    renderHistory();
+                });
+
+                window.fbOnSnapshot(window.fbCollection(window.fbDb, "planos_acao"), (snapshot) => {
+                    actionPlansCache = [];
+                    snapshot.forEach((docSnap) => {
+                        actionPlansCache.push({ fbId: docSnap.id, ...docSnap.data() });
+                    });
+                    localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                    renderDashboard();
+                    renderActionPlans();
+                });
+            } catch (error) {
+                console.warn("Modo Offline Ativo: Usando dados locais salvos no dispositivo.", error);
+            }
+        }
+
+        function initSignaturePad() {
+            signatureCanvas = document.getElementById('signature-pad');
+            signatureCtx = signatureCanvas.getContext('2d');
+            signatureCanvas.width = signatureCanvas.offsetWidth;
+            signatureCanvas.height = signatureCanvas.offsetHeight;
+            signatureCtx.strokeStyle = '#1e3a8a';
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+
+            const startDraw = (e) => {
+                isDrawing = true;
+                const rect = signatureCanvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                signatureCtx.beginPath();
+                signatureCtx.moveTo(x, y);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                const rect = signatureCanvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                signatureCtx.lineTo(x, y);
+                signatureCtx.stroke();
+            };
+
+            const stopDraw = () => { isDrawing = false; };
+
+            signatureCanvas.addEventListener('mousedown', startDraw);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDraw);
+            signatureCanvas.addEventListener('mouseleave', stopDraw);
+            signatureCanvas.addEventListener('touchstart', startDraw);
+            signatureCanvas.addEventListener('touchmove', draw);
+            signatureCanvas.addEventListener('touchend', stopDraw);
+        }
+
+        function clearSignature() {
+            if (signatureCtx) {
+                signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            }
+        }
+
+        function switchTab(tab) {
+            const sections = ['audit', 'dashboard', 'history', 'actionplans'];
+            sections.forEach(s => {
+                document.getElementById(`section-${s}`).classList.add('hidden');
+                document.getElementById(`tab-${s}`).className = "px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-2";
+            });
+
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = "px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all bg-white text-blue-900 shadow-sm flex items-center gap-2";
+
+            if (tab === 'dashboard') renderDashboard();
+            if (tab === 'history') renderHistory();
+            if (tab === 'actionplans') renderActionPlans();
+        }
+
+        function renderAuditForm() {
+            const container = document.getElementById('goals-container');
+            container.innerHTML = '';
+
+            metasConfig.forEach(meta => {
+                let itemsHTML = '';
+                meta.items.forEach((item, index) => {
+                    itemsHTML += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td class="p-3 text-xs text-slate-500 font-medium">${index + 1}</td>
+                            <td class="p-3 text-sm text-slate-700">${item}</td>
+                            <td class="p-3 text-center">
+                                <label class="inline-flex items-center justify-center cursor-pointer">
+                                    <input type="radio" name="${meta.id}_item_${index}" value="C" checked class="text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                                </label>
+                            </td>
+                            <td class="p-3 text-center">
+                                <label class="inline-flex items-center justify-center cursor-pointer">
+                                    <input type="radio" name="${meta.id}_item_${index}" value="NC" class="text-rose-600 focus:ring-rose-500 w-4 h-4">
+                                </label>
+                            </td>
+                            <td class="p-3 text-center">
+                                <label class="inline-flex items-center justify-center cursor-pointer">
+                                    <input type="radio" name="${meta.id}_item_${index}" value="NA" class="text-slate-400 focus:ring-slate-400 w-4 h-4">
+                                </label>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
+                card.innerHTML = `
+                    <div class="bg-blue-700 text-white px-5 py-3 flex justify-between items-center flex-wrap gap-2">
+                        <h3 class="font-bold text-xs sm:text-sm tracking-wide">${meta.title}</h3>
+                        <span class="text-xs bg-blue-600 px-2.5 py-1 rounded-lg border border-blue-500">${meta.formulaNote}</span>
+                    </div>
+                    <div class="p-4 overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    <th class="p-3 w-12">Nº</th>
+                                    <th class="p-3">Itens Avaliados</th>
+                                    <th class="p-3 text-center w-20 text-emerald-600">C</th>
+                                    <th class="p-3 text-center w-20 text-rose-600">NC</th>
+                                    <th class="p-3 text-center w-20 text-slate-500">NA</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHTML}</tbody>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('custom-alert');
+            const alertMsg = document.getElementById('alert-message');
+            const alertIcon = document.getElementById('alert-icon');
+            alertMsg.textContent = message;
+            alertBox.className = "mb-6 p-4 rounded-xl border flex items-center justify-between transition-all shadow-sm";
+
+            if (type === 'success') {
+                alertBox.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                alertIcon.className = "fa-solid fa-circle-check text-emerald-600 text-xl";
+            } else if (type === 'error') {
+                alertBox.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+                alertIcon.className = "fa-solid fa-circle-exclamation text-rose-600 text-xl";
+            }
+            alertBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeAlert() {
+            document.getElementById('custom-alert').classList.add('hidden');
+        }
+
+        async function saveAudit() {
+            const setor = document.getElementById('audit-setor').value.trim();
+            const leito = document.getElementById('audit-leito').value.trim();
+            const data = document.getElementById('audit-data').value;
+            const enfermeiro = document.getElementById('audit-enfermeiro').value.trim();
+
+            if (!setor || !leito || !data || !enfermeiro) {
+                showAlert('Por favor, preencha todos os campos de identificação.', 'error');
+                return;
+            }
+
+            const signatureDataUrl = signatureCanvas.toDataURL();
+            let auditData = {
+                id: 'AUD-' + Date.now(),
+                setor,
+                leito,
+                data,
+                enfermeiro,
+                signature: signatureDataUrl,
+                metas: {},
+                pontuacaoGeral: 0,
+                totalNC: 0
+            };
+
+            let sumConformidade = 0;
+            let totalMetasCalculadas = 0;
+            let totalNCGlobal = 0;
+
+            metasConfig.forEach(meta => {
+                let conf = 0, nc = 0, na = 0;
+                let itemsResult = [];
+
+                meta.items.forEach((item, index) => {
+                    const radios = document.getElementsByName(`${meta.id}_item_${index}`);
+                    let val = 'C';
+                    for (const r of radios) {
+                        if (r.checked) { val = r.value; break; }
+                    }
+                    itemsResult.push({ item, status: val });
+                    if (val === 'C') conf++;
+                    else if (val === 'NC') { nc++; totalNCGlobal++; }
+                    else if (val === 'NA') na++;
+                });
+
+                const validos = meta.items.length - na;
+                let percentual = validos > 0 ? (conf / validos) * 100 : 0;
+
+                auditData.metas[meta.id] = {
+                    title: meta.title,
+                    conf, nc, na, validos,
+                    percentual: parseFloat(percentual.toFixed(1)),
+                    items: itemsResult
+                };
+
+                sumConformidade += percentual;
+                totalMetasCalculadas++;
+
+                if (percentual < 90) {
+                    autoCreateActionPlan(meta.title, setor, `Conformidade abaixo de 90% (${percentual.toFixed(1)}%)`);
+                }
+            });
+
+            auditData.pontuacaoGeral = parseFloat((sumConformidade / totalMetasCalculadas).toFixed(1));
+            auditData.totalNC = totalNCGlobal;
+
+            try {
+                if (window.fbDb && window.fbAddDoc) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "auditorias"), auditData);
+                } else {
+                    throw new Error("Sem Firebase");
+                }
+                showAlert(`Auditoria salva na nuvem! Pontuação Geral: ${auditData.pontuacaoGeral}%`, 'success');
+            } catch (error) {
+                // Fallback Offline LocalStorage
+                auditHistoryCache.unshift(auditData);
+                localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                renderDashboard();
+                renderHistory();
+                showAlert(`Modo Offline: Auditoria salva localmente no dispositivo! (${auditData.pontuacaoGeral}%)`, 'success');
+            }
+            
+            resetForm(); 
+        }
+
+        async function autoCreateActionPlan(metaTitle, setor, motivo) {
+            const exists = actionPlansCache.some(a => a.what.includes(metaTitle) && a.where === setor && a.status === 'Pendente');
+            if (!exists) {
+                let newAction = {
+                    id: 'ACT-' + Date.now() + Math.floor(Math.random()*100),
+                    what: `Rever processos e treinar equipe em: ${metaTitle}`,
+                    why: motivo,
+                    where: setor,
+                    who: 'Enfermeiro(a) Responsável',
+                    when: new Date(Date.now() + 7*24*60*60*1000).toISOString().slice(0,10),
+                    how: 'Reunião de alinhamento',
+                    status: 'Pendente'
+                };
+                try {
+                    if (window.fbDb && window.fbAddDoc) {
+                        await window.fbAddDoc(window.fbCollection(window.fbDb, "planos_acao"), newAction);
+                    } else {
+                        throw new Error("Sem Firebase");
+                    }
+                } catch (e) {
+                    actionPlansCache.push(newAction);
+                    localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                    renderActionPlans();
+                }
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('audit-setor').value = '';
+            document.getElementById('audit-leito').value = '';
+            document.getElementById('audit-enfermeiro').value = '';
+            document.getElementById('audit-data').valueAsDate = new Date();
+            clearSignature();
+            renderAuditForm();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function filterByPeriod(history) {
+            const period = document.getElementById('filter-periodo').value;
+            const customContainer = document.getElementById('custom-date-container');
+            
+            if (period === 'custom') {
+                customContainer.classList.remove('hidden');
+                const start = document.getElementById('filter-date-start').value;
+                const end = document.getElementById('filter-date-end').value;
+                if (!start || !end) return history;
+                return history.filter(a => a.data >= start && a.data <= end);
+            } else {
+                customContainer.classList.add('hidden');
+            }
+
+            if (period === 'all') return history;
+            const today = new Date().toISOString().slice(0, 10);
+            return history.filter(a => {
+                if (period === 'today') return a.data === today;
+                if (period === '7days') {
+                    const diffTime = Math.abs(new Date() - new Date(a.data));
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7;
+                }
+                if (period === 'month') return a.data.slice(0, 7) === today.slice(0, 7);
+                return true;
+            });
+        }
+
+        function renderDashboard() {
+            const history = auditHistoryCache;
+            const setorFilter = document.getElementById('filter-setor').value;
+
+            const setorSelect = document.getElementById('filter-setor');
+            const setoresUnicos = [...new Set(history.map(a => a.setor))];
+            let setorOptions = '<option value="">Todos os Setores</option>';
+            setoresUnicos.forEach(s => {
+                setorOptions += `<option value="${s}" ${s === setorFilter ? 'selected' : ''}>${s}</option>`;
+            });
+            setorSelect.innerHTML = setorOptions;
+
+            let filteredHistory = setorFilter ? history.filter(a => a.setor === setorFilter) : history;
+            filteredHistory = filterByPeriod(filteredHistory);
+
+            const totalAuditorias = filteredHistory.length;
+            let somaPontuacao = 0, somaNC = 0;
+            let metaMedias = {};
+            let setorMedias = {};
+            let failureCounts = {};
+
+            metasConfig.forEach(m => { metaMedias[m.id] = { title: m.title, somaPercentual: 0, count: 0 }; });
+
+            filteredHistory.forEach(a => {
+                somaPontuacao += a.pontuacaoGeral;
+                somaNC += a.totalNC;
+
+                if (!setorMedias[a.setor]) setorMedias[a.setor] = { soma: 0, total: 0 };
+                setorMedias[a.setor].soma += a.pontuacaoGeral;
+                setorMedias[a.setor].total += 1;
+
+                for (let mId in a.metas) {
+                    let mData = a.metas[mId];
+                    if (metaMedias[mId]) {
+                        metaMedias[mId].somaPercentual += mData.percentual;
+                        metaMedias[mId].count++;
+                    }
+                    if (mData.items) {
+                        mData.items.forEach(itemObj => {
+                            if (itemObj.status === 'NC') {
+                                failureCounts[itemObj.item] = (failureCounts[itemObj.item] || 0) + 1;
+                            }
+                        });
+                    }
+                }
+            });
+
+            document.getElementById('kpi-pontuacao-geral').textContent = (totalAuditorias > 0 ? (somaPontuacao / totalAuditorias).toFixed(1) : 0) + '%';
+            document.getElementById('kpi-total-auditorias').textContent = totalAuditorias;
+            document.getElementById('kpi-total-nc').textContent = totalAuditorias > 0 ? (somaNC / totalAuditorias).toFixed(1) : 0;
+
+            let totalActions = actionPlansCache.length;
+            let completedActions = actionPlansCache.filter(a => a.status === 'Concluído').length;
+            let actionRate = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+            document.getElementById('kpi-actions-rate').textContent = actionRate + '%';
+
+            const chartContainer = document.getElementById('chart-container');
+            chartContainer.innerHTML = '';
+            let recomendacoesHTML = '';
+
+            metasConfig.forEach(meta => {
+                let mData = metaMedias[meta.id];
+                let mediaMeta = mData.count > 0 ? (mData.somaPercentual / mData.count).toFixed(1) : 0;
+                let colorBar = mediaMeta < 80 ? 'bg-rose-500' : (mediaMeta < 90 ? 'bg-amber-500' : 'bg-blue-600');
+
+                chartContainer.innerHTML += `
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs sm:text-sm">
+                            <span class="font-semibold text-slate-700">${meta.title}</span>
+                            <span class="font-bold text-slate-800">${mediaMeta}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <div class="${colorBar} h-3 rounded-full transition-all duration-500" style="width: ${mediaMeta}%"></div>
+                        </div>
+                    </div>
+                `;
+
+                if (mediaMeta < 90 && mData.count > 0) {
+                    recomendacoesHTML += `<div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i><span><strong>${meta.title}</strong> está com média de ${mediaMeta}%. Recomenda-se reforçar a checagem.</span></div>`;
+                }
+            });
+
+            if (!recomendacoesHTML) {
+                recomendacoesHTML = `<div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i><span>Parabéns! Todas as metas avaliadas estão acima de 90%.</span></div>`;
+            }
+            document.getElementById('quality-recommendations').innerHTML = recomendacoesHTML;
+
+            renderSetorRanking(setorMedias);
+            renderTopFailures(failureCounts);
+            renderActionStatusSummary();
+            renderMonthlyComparison(history);
+        }
+
+        function renderSetorRanking(setorMedias) {
+            const container = document.getElementById('setor-ranking-container');
+            container.innerHTML = '';
+            let setoresArray = Object.keys(setorMedias).map(s => ({
+                setor: s,
+                media: setorMedias[s].soma / setorMedias[s].total
+            })).sort((a,b) => b.media - a.media);
+
+            if (setoresArray.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400">Nenhum setor registrado no período.</p>`;
+                return;
+            }
+
+            setoresArray.forEach(item => {
+                let badgeBg = item.media >= 90 ? 'bg-emerald-100 text-emerald-800' : (item.media >= 80 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+                container.innerHTML += `
+                    <div class="flex justify-between items-center p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-xs">
+                        <span class="font-semibold text-slate-700">${item.setor}</span>
+                        <span class="px-2.5 py-0.5 rounded-full font-bold ${badgeBg}">${item.media.toFixed(1)}%</span>
+                    </div>
+                `;
+            });
+        }
+
+        function renderTopFailures(failureCounts) {
+            const container = document.getElementById('top-failures-container');
+            container.innerHTML = '';
+
+            let sortedFailures = Object.keys(failureCounts).map(item => ({
+                item, count: failureCounts[item]
+            })).sort((a,b) => b.count - a.count).slice(0, 5);
+
+            if (sortedFailures.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400">Nenhuma não conformidade registrada no período.</p>`;
+                return;
+            }
+
+            sortedFailures.forEach((f, idx) => {
+                container.innerHTML += `
+                    <div class="flex justify-between items-center p-2.5 rounded-xl border border-slate-100 bg-rose-50/50 text-xs">
+                        <span class="font-semibold text-slate-700"><span class="text-rose-600 font-bold mr-1">#${idx+1}</span> ${f.item}</span>
+                        <span class="px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-800">${f.count} ocorrência(s)</span>
+                    </div>
+                `;
+            });
+        }
+
+        function renderActionStatusSummary() {
+            const container = document.getElementById('action-status-container');
+            container.innerHTML = '';
+
+            let total = actionPlansCache.length;
+            let concluidos = actionPlansCache.filter(a => a.status === 'Concluído').length;
+            let emAndamento = actionPlansCache.filter(a => a.status === 'Em Andamento').length;
+            let pendentes = actionPlansCache.filter(a => a.status === 'Pendente').length;
+
+            container.innerHTML = `
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <p class="text-xs text-amber-700 font-semibold">Pendentes</p>
+                        <h4 class="text-lg font-bold text-amber-800">${pendentes}</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                        <p class="text-xs text-blue-700 font-semibold">Em Andamento</p>
+                        <h4 class="text-lg font-bold text-blue-800">${emAndamento}</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <p class="text-xs text-emerald-700 font-semibold">Concluídos</p>
+                        <h4 class="text-lg font-bold text-emerald-800">${concluidos}</h4>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 pt-1">Total de Planos de Ação 5W2H gerados: <strong>${total}</strong></p>
+            `;
+        }
+
+        function renderMonthlyComparison(history) {
+            const tbody = document.getElementById('monthly-comparison-body');
+            tbody.innerHTML = '';
+
+            if (!history || history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Nenhum dado registrado para comparação mensal.</td></tr>`;
+                return;
+            }
+
+            let map = {};
+            history.forEach(a => {
+                if (!a.data) return;
+                let mesAno = a.data.slice(0, 7);
+                let setor = a.setor || 'Geral';
+                if (!map[mesAno]) map[mesAno] = {};
+                if (!map[mesAno][setor]) map[mesAno][setor] = { soma: 0, count: 0 };
+                map[mesAno][setor].soma += a.pontuacaoGeral || 0;
+                map[mesAno][setor].count += 1;
+            });
+
+            let mesesOrdenados = Object.keys(map).sort().reverse();
+            let rowsHtml = '';
+
+            mesesOrdenados.forEach(mes => {
+                let [ano, mesNum] = mes.split('-');
+                let mesLabel = `${mesNum}/${ano}`;
+                let setoresMap = map[mes];
+
+                for (let setor in setoresMap) {
+                    let dataSetor = setoresMap[setor];
+                    let media = (dataSetor.soma / dataSetor.count).toFixed(1);
+                    let badgeColor = media >= 90 ? 'bg-emerald-100 text-emerald-800' : (media >= 80 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+
+                    rowsHtml += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors text-xs">
+                            <td class="p-3 font-semibold text-slate-700">${mesLabel}</td>
+                            <td class="p-3 text-slate-800 font-medium">${setor}</td>
+                            <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full font-bold ${badgeColor}">${media}%</span></td>
+                            <td class="p-3 text-center text-slate-600">${dataSetor.count}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            tbody.innerHTML = rowsHtml || `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Sem dados disponíveis.</td></tr>`;
+        }
+
+        function renderHistory() {
+            const history = auditHistoryCache;
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+
+            if (history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhuma auditoria registrada.</td></tr>`;
+                return;
+            }
+
+            history.forEach(audit => {
+                let badgeColor = audit.pontuacaoGeral < 80 ? 'bg-rose-100 text-rose-800' : (audit.pontuacaoGeral < 90 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-3 text-slate-600 font-medium">${audit.data}</td>
+                        <td class="p-3 text-slate-800 font-semibold">${audit.setor} <span class="text-xs text-slate-500 font-normal">(${audit.leito || 'Geral'})</span></td>
+                        <td class="p-3 text-slate-600">${audit.enfermeiro}</td>
+                        <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">${audit.pontuacaoGeral}%</span></td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="viewDetails('${audit.fbId || audit.id}')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-xs transition-all"><i class="fa-solid fa-eye"></i> Detalhes</button>
+                            <button onclick="deleteAudit('${audit.fbId || audit.id}')" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold text-xs transition-all"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function viewDetails(id) {
+            const audit = auditHistoryCache.find(a => a.fbId === id || a.id === id);
+            if (!audit) return;
+
+            let contentHTML = `
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl text-xs text-slate-600 mb-4 border border-slate-200">
+                    <div><strong>Setor:</strong> ${audit.setor}</div>
+                    <div><strong>Leito:</strong> ${audit.leito || 'Não informado'}</div>
+                    <div><strong>Data:</strong> ${audit.data}</div>
+                    <div><strong>Enfermeiro(a):</strong> ${audit.enfermeiro}</div>
+                    <div class="col-span-2"><strong>Pontuação Geral:</strong> <span class="font-bold text-blue-600">${audit.pontuacaoGeral}%</span></div>
+                </div><div class="space-y-4">
+            `;
+
+            for (let mKey in audit.metas) {
+                let m = audit.metas[mKey];
+                let itemsDetailHTML = '';
+                m.items.forEach(it => {
+                    let badgeStatus = it.status === 'NC' ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">NC</span>' : (it.status === 'NA' ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">NA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">C</span>');
+                    itemsDetailHTML += `<div class="flex justify-between items-center py-1.5 border-b border-slate-100 text-xs"><span class="text-slate-700">${it.item}</span>${badgeStatus}</div>`;
+                });
+                contentHTML += `<div class="border border-slate-200 rounded-xl p-3"><div class="flex justify-between items-center mb-2"><span class="font-bold text-slate-800 text-xs">${m.title}</span><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Conformidade: ${m.percentual}%</span></div><div class="space-y-1">${itemsDetailHTML}</div></div>`;
+            }
+
+            if (audit.signature) {
+                contentHTML += `<div class="mt-4 border-t pt-3"><p class="text-xs font-semibold text-slate-500 mb-1">Assinatura do Auditor:</p><img src="${audit.signature}" alt="Assinatura" class="h-20 border rounded-lg bg-slate-50 p-1"></div>`;
+            }
+            contentHTML += `</div>`;
+            document.getElementById('modal-content').innerHTML = contentHTML;
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+
+        async function deleteAudit(id) {
+            const senha = prompt('Acesso restrito. Digite a senha de gestor para excluir:');
+            if (senha !== '1234') { if (senha !== null) alert('Senha incorreta!'); return; }
+            if (!confirm('Deseja realmente excluir esta auditoria?')) return;
+            try {
+                const target = auditHistoryCache.find(a => a.fbId === id || a.id === id);
+                if (target && target.fbId && window.fbDb) {
+                    await window.fbDeleteDoc(window.fbDoc(window.fbDb, "auditorias", target.fbId));
+                }
+                auditHistoryCache = auditHistoryCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                renderDashboard();
+                renderHistory();
+                showAlert('Auditoria excluída com sucesso.', 'success');
+            } catch (error) { 
+                auditHistoryCache = auditHistoryCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                renderDashboard();
+                renderHistory();
+                showAlert('Auditoria excluída localmente.', 'success');
+            }
+        }
+
+        async function clearHistory() {
+            const senha = prompt('Acesso restrito. Digite a senha para limpar o histórico:');
+            if (senha !== '1234') { if (senha !== null) alert('Senha incorreta!'); return; }
+            if (!confirm('Atenção: Todas as auditorias serão apagadas permanentemente.')) return;
+            try {
+                for (let audit of auditHistoryCache) {
+                    if (audit.fbId && window.fbDb) {
+                        await window.fbDeleteDoc(window.fbDoc(window.fbDb, "auditorias", audit.fbId));
+                    }
+                }
+                auditHistoryCache = [];
+                localStorage.removeItem('auditHistoryCache');
+                renderDashboard();
+                renderHistory();
+                showAlert('Histórico limpo com sucesso.', 'success');
+            } catch (error) { 
+                auditHistoryCache = [];
+                localStorage.removeItem('auditHistoryCache');
+                renderDashboard();
+                renderHistory();
+                showAlert('Histórico local limpo.', 'success');
+            }
+        }
+
+        function renderActionPlans() {
+            let actions = actionPlansCache;
+            const setorActionFilter = document.getElementById('filter-action-setor').value;
+
+            const actionSetorSelect = document.getElementById('filter-action-setor');
+            const setoresAcaoUnicos = [...new Set(actions.map(a => a.where))];
+            let setorActionOptions = '<option value="">Todos os Setores</option>';
+            setoresAcaoUnicos.forEach(s => {
+                setorActionOptions += `<option value="${s}" ${s === setorActionFilter ? 'selected' : ''}>${s}</option>`;
+            });
+            actionSetorSelect.innerHTML = setorActionOptions;
+
+            if (setorActionFilter) {
+                actions = actions.filter(a => a.where === setorActionFilter);
+            }
+
+            const tbody = document.getElementById('actionplans-table-body');
+            tbody.innerHTML = '';
+
+            if (actions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum plano de ação encontrado para este setor.</td></tr>`;
+                return;
+            }
+
+            const todayStr = new Date().toISOString().slice(0, 10);
+            actions.forEach(act => {
+                let statusColor = act.status === 'Concluído' ? 'bg-emerald-100 text-emerald-800' : (act.status === 'Em Andamento' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800');
+                let dateBadge = act.when;
+                if (act.status !== 'Concluído' && act.when < todayStr) {
+                    dateBadge = `<span class="text-rose-600 font-bold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> ${act.when}</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-3 text-slate-800 font-semibold">${act.what}</td>
+                        <td class="p-3 text-slate-600 text-xs">${act.why}</td>
+                        <td class="p-3 text-slate-600 font-medium">${act.where}</td>
+                        <td class="p-3 text-slate-600">${act.who}</td>
+                        <td class="p-3 text-slate-600">${dateBadge}</td>
+                        <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${statusColor}">${act.status}</span></td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="toggleActionStatus('${act.fbId || act.id}')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-xs transition-all"><i class="fa-solid fa-sync"></i></button>
+                            <button onclick="deleteAction('${act.fbId || act.id}')" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold text-xs transition-all"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openNewActionModal() {
+            document.getElementById('action-what').value = '';
+            document.getElementById('action-why').value = '';
+            document.getElementById('action-where').value = '';
+            document.getElementById('action-who').value = '';
+            document.getElementById('action-when').valueAsDate = new Date();
+            document.getElementById('action-how').value = '';
+            document.getElementById('action-modal').classList.remove('hidden');
+        }
+
+        function closeActionModal() { document.getElementById('action-modal').classList.add('hidden'); }
+
+        async function saveActionPlan() {
+            const what = document.getElementById('action-what').value.trim();
+            const why = document.getElementById('action-why').value.trim();
+            const where = document.getElementById('action-where').value.trim();
+            const who = document.getElementById('action-who').value.trim();
+            const when = document.getElementById('action-when').value;
+            const how = document.getElementById('action-how').value.trim();
+            const status = document.getElementById('action-status').value;
+
+            if (!what || !why || !where || !who || !when) {
+                showAlert('Por favor, preencha os campos obrigatórios.', 'error');
+                return;
+            }
+
+            let newAction = { id: 'ACT-' + Date.now(), what, why, where, who, when, how, status };
+            try {
+                if (window.fbDb && window.fbAddDoc) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "planos_acao"), newAction);
+                } else {
+                    throw new Error("Sem Firebase");
+                }
+                showAlert('Plano de ação salvo na nuvem!', 'success');
+            } catch (error) {
+                actionPlansCache.push(newAction);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans();
+                renderDashboard();
+                showAlert('Modo Offline: Plano de ação salvo localmente!', 'success');
+            }
+            closeActionModal();
+        }
+
+        async function toggleActionStatus(id) {
+            let act = actionPlansCache.find(a => a.fbId === id || a.id === id);
+            if (!act) return;
+            let nextStatus = act.status === 'Pendente' ? 'Em Andamento' : (act.status === 'Em Andamento' ? 'Concluído' : 'Pendente');
+            try {
+                if (act.fbId && window.fbDb) {
+                    await window.fbUpdateDoc(window.fbDoc(window.fbDb, "planos_acao", act.fbId), { status: nextStatus });
+                }
+                act.status = nextStatus;
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans();
+                renderDashboard();
+            } catch (error) {
+                act.status = nextStatus;
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans();
+                renderDashboard();
+            }
+        }
+
+        async function deleteAction(id) {
+            if (!confirm('Deseja excluir este plano de ação?')) return;
+            try {
+                let target = actionPlansCache.find(a => a.fbId === id || a.id === id);
+                if (target && target.fbId && window.fbDb) {
+                    await window.fbDeleteDoc(window.fbDoc(window.fbDb, "planos_acao", target.fbId));
+                }
+                actionPlansCache = actionPlansCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans();
+                renderDashboard();
+                showAlert('Plano excluído.', 'success');
+            } catch (error) {
+                actionPlansCache = actionPlansCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans();
+                renderDashboard();
+                showAlert('Plano excluído localmente.', 'success');
+            }
+        }
+
+        function exportCSV() {
+            const history = auditHistoryCache;
+            if (history.length === 0) { showAlert('Não há dados suficientes.', 'error'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,ID;Data;Setor;Leito;Enfermeiro;PontuacaoGeral\r\n";
+            history.forEach(a => { csvContent += `"${a.id}";"${a.data}";"${a.setor}";"${a.leito || ''}";"${a.enfermeiro}";"${a.pontuacaoGeral}%"\r\n`; });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `auditoria_qualidade_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
