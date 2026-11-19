@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria de Segurança do Paciente - Qualidade Assistencial</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs com as suas chaves configuradas -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7OSII6uUJ0opsZF3TTIvwpPD9PQfRH8A",
+            authDomain: "auditoriaapp2.firebaseapp.com",
+            projectId: "auditoriaapp2",
+            storageBucket: "auditoriaapp2.firebasestorage.app",
+            messagingSenderId: "988965138130",
+            appId: "1:988965138130:web:03dcfb25822a0bc1a0070b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.fbDb = db;
+        window.fbCollection = collection;
+        window.fbAddDoc = addDoc;
+        window.fbDeleteDoc = deleteDoc;
+        window.fbDoc = doc;
+        window.fbUpdateDoc = updateDoc;
+        window.fbSetDoc = setDoc;
+        window.fbOnSnapshot = onSnapshot;
+
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <style>
+        html { font-size: 18px; }
+        body { font-family: 'Inter', sans-serif; }
+        @media (max-width: 640px) {
+            table th, table td { padding: 10px 8px !important; font-size: 15px !important; }
+        }
+        @media print {
+            @page { size: A4 portrait; margin: 8mm; }
+            html { font-size: 11px; }
+            body {
+                background: white !important;
+                color: black !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            header, nav, button, .no-print { display: none !important; }
+            .print-header {
+                display: block !important;
+                margin-bottom: 8px !important;
+                padding-bottom: 6px !important;
+                border-bottom: 2px solid #1e3a8a !important;
+            }
+            .print-header h1 { font-size: 14px !important; }
+            .print-unit-banner {
+                background-color: #eff6ff !important;
+                border: 1.5px solid #1d4ed8 !important;
+                border-left: 5px solid #1e3a8a !important;
+                color: #0f172a !important;
+                padding: 5px 8px !important;
+                border-radius: 6px !important;
+                margin-top: 5px !important;
+            }
+            main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            section { margin-bottom: 8px !important; }
+            main > section, section > div, .space-y-5, .space-y-4, .space-y-3, .space-y-2\.5, .space-y-2 {
+                margin-top: 0 !important;
+                margin-bottom: 6px !important;
+            }
+            section > div {
+                padding: 8px 10px !important;
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .grid {
+                gap: 6px !important;
+            }
+            .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            }
+            .grid-cols-1.lg\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+            .p-4.rounded-2xl {
+                padding: 7px 8px !important;
+                gap: 8px !important;
+                border-radius: 8px !important;
+            }
+            .p-3\.5.rounded-xl {
+                padding: 6px !important;
+            }
+            .text-2xl { font-size: 15px !important; }
+            .text-lg { font-size: 12px !important; }
+            .text-sm { font-size: 10.5px !important; }
+            .text-xs { font-size: 9.5px !important; }
+            .w-40.h-40 { width: 88px !important; height: 88px !important; }
+            .h-44 { height: 105px !important; }
+            .h-60 { height: 115px !important; }
+            .max-h-72, .max-h-60 { max-height: none !important; overflow: visible !important; }
+            table { page-break-inside: auto; width: 100% !important; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            td, th { font-size: 10px !important; padding: 4px 6px !important; border: 1px solid #cbd5e1 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Cabeçalho exclusivo para Impressão / PDF -->
+    <div class="print-header hidden pb-3 mb-4">
+        <div class="flex justify-between items-start gap-3">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900">Relatório Executivo – Qualidade & Segurança do Paciente</h1>
+                <p class="text-xs text-slate-600">Indicadores das Metas Internacionais de Segurança do Paciente (OPAS/OMS)</p>
+            </div>
+            <div class="text-right text-xs text-slate-600">
+                <p id="print-date-label"></p>
+                <p id="print-period-label"></p>
+            </div>
+        </div>
+        <div class="print-unit-banner flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-800 text-white">Unidade / Setor</span>
+                <span id="print-unit-label" class="text-sm font-extrabold text-slate-900 uppercase">Todos os Setores</span>
+            </div>
+            <span id="print-coord-label" class="text-xs font-semibold text-blue-950"></span>
+        </div>
+    </div>
+
+    <!-- Cabeçalho Principal -->
+    <header class="bg-blue-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <i class="fa-solid fa-hospital-user text-2xl text-blue-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold leading-tight">Gestão de Qualidade & Segurança</h1>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <p class="text-xs text-blue-200">Metas (OPAS/OMS)</p>
+                        <span id="connection-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-200 border border-amber-400/30">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Conectando...
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+                <nav class="flex bg-blue-900/60 p-1.5 rounded-xl gap-1.5 border border-blue-700/50 flex-wrap justify-center">
+                    <button onclick="switchTab('audit')" id="tab-audit" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all bg-white text-blue-900 shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-clipboard-check"></i> Nova Auditoria
+                    </button>
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Histórico
+                    </button>
+                    <button onclick="switchTab('actionplans')" id="tab-actionplans" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check"></i> Plano 5W2H
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl w-full mx-auto p-3 sm:p-5 flex-grow space-y-5">
+
+        <div id="custom-alert" class="hidden mb-4 p-3.5 rounded-xl border flex items-center justify-between transition-all shadow-sm no-print">
+            <div class="flex items-center gap-3">
+                <i id="alert-icon" class="text-xl"></i>
+                <span id="alert-message" class="text-sm font-medium"></span>
+            </div>
+            <button onclick="closeAlert()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-base"></i></button>
+        </div>
+
+        <!-- SEÇÃO 1: FORMULÁRIO -->
+        <section id="section-audit" class="space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-2 border-b pb-2">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-id-card text-blue-600"></i> Identificação da Auditoria Assistencial (Segurança LGPD)
+                    </h2>
+                    <button type="button" onclick="promptNewMeta()" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-plus-circle"></i> Adicionar Nova Meta
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 mb-3.5">Insira apenas iniciais do paciente e número do prontuário para sigilo médico.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Setor / Unidade *</label>
+                        <input type="text" id="audit-setor" list="setores-datalist" placeholder="Ex: UTI Adulto" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                        <datalist id="setores-datalist"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Leito / Iniciais / Pront. *</label>
+                        <input type="text" id="audit-leito" onblur="validateLGPD(this)" placeholder="Ex: Leito 12 | J.S. | 4589" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Data da Auditoria *</label>
+                        <input type="date" id="audit-data" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Enfermeiro(a) Auditor(a) *</label>
+                        <input type="text" id="audit-enfermeiro" placeholder="Nome do profissional" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-slate-50">
+                    </div>
+                </div>
+            </div>
+
+            <div id="goals-container" class="space-y-5"></div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <div class="flex justify-between items-center mb-2.5 border-b pb-2">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-signature text-blue-600"></i> Assinatura Digital do Auditor
+                    </h3>
+                    <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-eraser"></i> Limpar Assinatura
+                    </button>
+                </div>
+                <div class="border border-slate-300 rounded-xl overflow-hidden bg-slate-50 inline-block w-full">
+                    <canvas id="signature-pad" class="w-full h-32 cursor-crosshair touch-none"></canvas>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-1">
+                <button onclick="resetForm()" class="px-4 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> Limpar Formulário
+                </button>
+                <button onclick="saveAudit()" class="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Auditoria e Indicadores
+                </button>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 2: DASHBOARD -->
+        <section id="section-dashboard" class="hidden space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col lg:flex-row justify-between items-center gap-3 no-print">
+                <div class="flex items-center gap-3 w-full lg:w-auto flex-wrap">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Filtrar por Setor</label>
+                        <select id="filter-setor" onchange="renderDashboard()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="">Todos os Setores</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Período Rápido</label>
+                        <select id="filter-periodo" onchange="renderDashboard()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="all">Todo o Período</option>
+                            <option value="today">Hoje</option>
+                            <option value="7days">Últimos 7 Dias</option>
+                            <option value="month">Este Mês</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="custom-date-container" class="hidden flex items-center gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">De:</label>
+                            <input type="date" id="filter-date-start" onchange="renderDashboard()" class="px-2.5 py-2 rounded-xl border border-slate-300 text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Até:</label>
+                            <input type="date" id="filter-date-end" onchange="renderDashboard()" class="px-2.5 py-2 rounded-xl border border-slate-300 text-sm bg-white">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
+                    <button onclick="openCoordinatorModal()" class="px-3.5 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-sm transition-all flex items-center gap-1.5" title="Cadastrar contato do coordenador por setor">
+                        <i class="fa-solid fa-user-tie"></i> Coordenador
+                    </button>
+                    <button onclick="sendReportWhatsApp()" class="px-3.5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all flex items-center gap-1.5 shadow-sm" title="Enviar resumo por WhatsApp">
+                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                    </button>
+                    <button onclick="sendReportEmail()" class="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all flex items-center gap-1.5 shadow-sm" title="Enviar resumo por E-mail">
+                        <i class="fa-solid fa-envelope"></i> E-mail
+                    </button>
+                    <button onclick="exportCSV()" class="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i> CSV
+                    </button>
+                    <button onclick="prepareAndPrint()" class="px-3.5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold text-sm transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-print"></i> Relatório PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs Principais -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3.5">
+                    <div class="bg-blue-100 text-blue-700 p-3.5 rounded-xl text-2xl"><i class="fa-solid fa-award"></i></div>
+                    <div><p class="text-xs font-semibold text-slate-400 uppercase">Pontuação Geral</p><h3 id="kpi-pontuacao-geral" class="text-2xl font-bold text-slate-800">0.0%</h3></div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3.5">
+                    <div class="bg-emerald-100 text-emerald-700 p-3.5 rounded-xl text-2xl"><i class="fa-solid fa-clipboard-list"></i></div>
+                    <div><p class="text-xs font-semibold text-slate-400 uppercase">Total Auditorias</p><h3 id="kpi-total-auditorias" class="text-2xl font-bold text-slate-800">0</h3></div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3.5">
+                    <div class="bg-rose-100 text-rose-700 p-3.5 rounded-xl text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Média NC / Falhas Graves</p>
+                        <div class="flex items-baseline gap-2">
+                            <h3 id="kpi-total-nc" class="text-2xl font-bold text-slate-800">0</h3>
+                            <span id="kpi-grave-badge" class="hidden text-xs font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white">0 Graves</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3.5">
+                    <div class="bg-indigo-100 text-indigo-700 p-3.5 rounded-xl text-2xl"><i class="fa-solid fa-list-check"></i></div>
+                    <div><p class="text-xs font-semibold text-slate-400 uppercase">Ações 5W2H Resolvidas</p><h3 id="kpi-actions-rate" class="text-2xl font-bold text-slate-800">0%</h3></div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO 1 & 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-bar text-blue-600"></i> Gráfico de Barras – Média por Setor (%)
+                    </h3>
+                    <div id="chart-column-container" class="max-h-72 overflow-y-auto space-y-3 pt-2 pr-1"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-pie text-indigo-600"></i> Gráfico de Rosca – Status 5W2H & Prazos
+                    </h3>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-6 my-auto">
+                        <div id="chart-doughnut-container" class="relative w-40 h-40 flex items-center justify-center"></div>
+                        <div id="doughnut-legend" class="space-y-2 text-sm text-slate-600"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DESTAQUE CRITICIDADE & LINHAS -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                    <h3 class="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Destaque – Criticidade das Não-Conformidades
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Distribuição das falhas entre Baixa, Média e Grave/Evento Adverso.</p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-6 my-auto">
+                        <div id="chart-severity-container" class="relative w-40 h-40 flex items-center justify-center"></div>
+                        <div id="severity-legend" class="space-y-2 text-sm text-slate-600"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                    <h3 class="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-line text-emerald-600"></i> Gráfico de Linhas – Avaliação Geral Mensal
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Tendência cronológica consolidada por mês.</p>
+                    <div id="chart-line-container" class="h-44 relative flex items-end pt-4 px-2 border-b border-slate-100"></div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO 3 & 4 (PARETO COM FILTRO DE CRITICIDADE) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                    <h3 class="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-column text-indigo-600"></i> Volume de Auditorias por Mês
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Quantidade total de inspeções realizadas.</p>
+                    <div id="chart-combo-container" class="h-60 relative flex items-end pt-4 px-2 border-b border-slate-100"></div>
+                </div>
+
+                <!-- GRÁFICO 5: PARETO -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                            <i class="fa-solid fa-chart-bar text-rose-600"></i> Pareto – Não-Conformidades (80/20)
+                        </h3>
+                        <select id="filter-pareto-severity" onchange="renderDashboard()" class="no-print px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                            <option value="all">Todas Criticidades</option>
+                            <option value="Grave/Evento Adverso">Somente Graves</option>
+                            <option value="Média">Somente Médias</option>
+                            <option value="Baixa">Somente Baixas</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4">Identifica os principais fatores responsáveis pelas falhas assistenciais.</p>
+                    <div id="chart-pareto-container" class="max-h-60 overflow-y-auto space-y-3 pt-2 pr-1"></div>
+                </div>
+            </div>
+
+            <!-- DESEMPENHO INSTITUCIONAL -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-shield-halved text-purple-600"></i> Desempenho Institucional por Meta da OMS (OPAS)
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">Média de conformidade consolidada em cada meta.</p>
+                <div id="chart-radar-metas" class="space-y-3 pt-2"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i> Recomendações Assistenciais e Alertas Gerenciais
+                </h3>
+                <div id="quality-recommendations" class="space-y-2.5 text-sm text-slate-600"></div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 3: HISTÓRICO -->
+        <section id="section-history" class="hidden space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4 border-b pb-3">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Histórico Completo de Auditorias
+                    </h3>
+                    <div class="flex items-center gap-2 flex-wrap no-print">
+                        <select id="filter-history-score" onchange="renderHistory()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+                            <option value="">Todas as Pontuações</option>
+                            <option value="good">Excelente (>= 90%)</option>
+                            <option value="warning">Regular (80% - 89%)</option>
+                            <option value="critical">Crítico (< 80%)</option>
+                        </select>
+                        <input type="text" id="history-search" oninput="renderHistory()" placeholder="Filtrar por setor, leito ou auditor..." class="px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <button onclick="clearHistory()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-sm transition-all flex items-center gap-1.5 border border-rose-200">
+                            <i class="fa-solid fa-trash-can"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Setor / ID (LGPD)</th>
+                                <th class="p-3">Enfermeiro(a)</th>
+                                <th class="p-3 text-center">Pontuação Geral</th>
+                                <th class="p-3 text-right no-print">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 4: PLANO DE AÇÃO 5W2H -->
+        <section id="section-actionplans" class="hidden space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4 border-b pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                            <i class="fa-solid fa-list-check text-blue-600"></i> Plano de Ação 5W2H por Setor e Meta
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Gerenciamento isolado por meta correspondente com alertas de prazo e criticidade.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap no-print">
+                        <select id="filter-action-setor" onchange="renderActionPlans()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                            <option value="">Todos os Setores (Com Pendência)</option>
+                        </select>
+                        <button onclick="openNewActionModal()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Novo Plano
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">Meta / Ação Corretiva</th>
+                                <th class="p-3">Justificativa / Itens Específicos NC</th>
+                                <th class="p-3">Setor</th>
+                                <th class="p-3">Responsável</th>
+                                <th class="p-3">Prazo</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-right no-print">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actionplans-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Coordenador por Setor -->
+    <div id="coordinator-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl border border-slate-200">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-tie text-indigo-600"></i> Coordenador da Unidade / Setor
+                </h3>
+                <button onclick="closeCoordinatorModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Setor *</label>
+                    <input type="text" id="coord-setor" list="setores-datalist" onchange="loadCoordinatorForSetor()" placeholder="Ex: UTI Adulto" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Nome do Coordenador(a)</label>
+                    <input type="text" id="coord-name" placeholder="Ex: Enf. Mariana Souza" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">WhatsApp (DDD + Número)</label>
+                    <input type="tel" id="coord-phone" placeholder="Ex: 13999998888" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">E-mail Institucional</label>
+                    <input type="email" id="coord-email" placeholder="coordenacao.uti@hospital.com.br" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm">
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button onclick="closeCoordinatorModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Cancelar</button>
+                <button onclick="saveCoordinator()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-sm">Salvar Contato</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Termo de Responsabilidade LGPD (Primeiro Acesso) -->
+    <div id="lgpd-welcome-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200">
+            <div class="flex items-center gap-3 mb-3 border-b pb-3">
+                <div class="bg-blue-100 text-blue-700 p-2.5 rounded-xl text-xl"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 uppercase">Termo de Ciência & LGPD</h3>
+                    <p class="text-xs text-slate-500">Segurança de Dados Assistenciais</p>
+                </div>
+            </div>
+            <div class="space-y-2.5 text-xs text-slate-600 leading-relaxed">
+                <p>Bem-vindo à Plataforma de Auditoria Assistencial. Para garantir conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD)</strong> e sigilo profissional:</p>
+                <ul class="list-disc pl-4 space-y-1 text-slate-700 font-medium">
+                    <li>Nunca insira o nome completo do paciente (utilize apenas <strong>iniciais e número do prontuário/leito</strong>).</li>
+                    <li>Os registros são sincronizados na nuvem para fins exclusivos de gestão da qualidade e segurança do paciente.</li>
+                </ul>
+            </div>
+            <div class="mt-5 flex justify-end">
+                <button onclick="acceptLgpdTerms()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm">
+                    Li e Concordo com as Diretrizes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Senha Seguro com Máscara (Asteriscos) -->
+    <div id="password-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl border border-slate-200">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-blue-600"></i> Acesso Restrito
+                </h3>
+                <button onclick="closePasswordModal(false)" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-sm">
+                <p class="text-xs text-slate-500">Digite a senha de segurança:</p>
+                <input type="password" id="modal-password-input" placeholder="••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-lg tracking-widest text-center" onkeydown="if(event.key==='Enter') confirmPasswordModal()">
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button onclick="closePasswordModal(false)" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Cancelar</button>
+                <button onclick="confirmPasswordModal()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-blue-600"></i> Detalhes da Auditoria Assistencial
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-content" class="space-y-3.5 text-sm"></div>
+            <div class="mt-5 flex justify-end gap-2.5 no-print">
+                <button onclick="prepareAndPrint()" class="px-3.5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold text-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-print"></i> Imprimir</button>
+                <button onclick="closeModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nova Meta -->
+    <div id="new-meta-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-blue-600"></i> Adicionar Nova Meta de Auditoria
+                </h3>
+                <button onclick="closeNewMetaModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Título da Meta *</label>
+                    <input type="text" id="new-meta-title" placeholder="Ex: Meta 7 – Segurança Cirúrgica" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Fórmula de Cálculo *</label>
+                    <input type="text" id="new-meta-formula" placeholder="Ex: Fórmula: (Itens conf. ÷ Válidos) × 100" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Itens Avaliados (um por linha ou separados por vírgula) *</label>
+                    <textarea id="new-meta-items" rows="4" placeholder="Ex: Termo de consentimento, Identificação do sítio cirúrgico, Check-list cirúrgico" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"></textarea>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button onclick="closeNewMetaModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Cancelar</button>
+                <button onclick="saveNewMeta()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm">Incluir Meta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Item Avaliado -->
+    <div id="new-item-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl border border-slate-200">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-blue-600"></i> Adicionar Item Avaliado
+                </h3>
+                <button onclick="closeNewItemModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-sm">
+                <input type="hidden" id="current-target-meta-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Descrição do Item *</label>
+                    <input type="text" id="new-item-desc" placeholder="Ex: Higienização prévia verificada" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button onclick="closeNewItemModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Cancelar</button>
+                <button onclick="saveNewItem()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm">Adicionar Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Plano de Ação -->
+    <div id="action-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-3.5 border-b pb-2.5">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i> Novo Plano de Ação 5W2H
+                </h3>
+                <button onclick="closeActionModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Meta Correspondente *</label>
+                        <select id="action-meta-title" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Prioridade / Criticidade</label>
+                        <select id="action-priority" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-white">
+                            <option value="Normal">Normal (Média/Baixa)</option>
+                            <option value="Urgente">Urgente (Falha Grave / Evento Adverso)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">What (O que será feito?) *</label>
+                    <input type="text" id="action-what" placeholder="Ex: Treinamento específico" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Why (Por quê / Justificativa) *</label>
+                    <input type="text" id="action-why" placeholder="Ex: Correção de não conformidade" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Where (Setor) *</label>
+                        <input type="text" id="action-where" list="setores-datalist" placeholder="Ex: UTI Adulto" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Who (Responsável) *</label>
+                        <input type="text" id="action-who" placeholder="Ex: Enf. Coordenadora" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">When (Prazo) *</label>
+                        <input type="date" id="action-when" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">How (Como)</label>
+                        <input type="text" id="action-how" placeholder="Ex: Reunião" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Status</label>
+                        <select id="action-status" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-white">
+                            <option value="Pendente">Pendente</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Concluído">Concluído</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button onclick="closeActionModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-sm transition-all">Cancelar</button>
+                <button onclick="saveActionPlan()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm">Salvar Plano</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-3.5 mt-auto text-center text-xs text-slate-400">
+        <p>Plataforma de Auditoria e Qualidade Assistencial &bull; Metas Internacionais de Segurança do Paciente</p>
+    </footer>
+
+    <!-- Script Principal -->
+    <script>
+        const AUTO_ACTION_SEVERITIES = ['Média', 'Grave/Evento Adverso'];
+
+        const defaultMetas = [
+            {
+                id: 'meta1',
+                title: 'Meta 1 – Identificação Correta',
+                formulaNote: 'Fórmula: (Itens conf. ÷ Válidos) × 100',
+                items: ['Pulseira presente', 'Pulseira dados legíveis', 'Quadro no leito (Nome/DN)', 'Identif. verbal (consciente)']
+            },
+            {
+                id: 'meta2',
+                title: 'Meta 2 – Comunicação Efetiva',
+                formulaNote: 'Fórmula: (Passagem efet. ÷ Audit.) × 100',
+                items: ['Passagem de plantão (registro)', 'Comunicação verbal enfermagem']
+            },
+            {
+                id: 'meta3',
+                title: 'Meta 3 – Segurança na Medicação',
+                formulaNote: 'Fórmula: (Checagens conf. ÷ Realiz.) × 100',
+                items: ['Prescrição x Adm. correta', 'Frascos multidoses identificados', 'Alta vigilância sinalizados']
+            },
+            {
+                id: 'meta5',
+                title: 'Meta 5 – Higienização das Mãos',
+                formulaNote: 'Fórmula: (Oport. conf. ÷ Observ.) × 100',
+                items: ['1º Momento: Antes contato', '2º Momento: Antes proced. limpo', '3º Momento: Após fluidos', '4º Momento: Após contato', '5º Momento: Áreas próximas']
+            },
+            {
+                id: 'meta6a',
+                title: 'Meta 6A – Prevenção de Quedas',
+                formulaNote: 'Fórmula: (Quedas conf. ÷ Válidos) × 100',
+                items: ['Avaliação risco (Morse/Humpty)', 'Pulseira risco queda (amarela)', 'Grades do leito elevadas', 'Campainha acessível', 'Placa/identif. de queda', 'Paciente/acompanhante orientados']
+            },
+            {
+                id: 'meta6b',
+                title: 'Meta 6B – Prevenção de LPP',
+                formulaNote: 'Fórmula: (LPP conf. ÷ Válidos) × 100',
+                items: ['Avaliação risco LPP (Braden)', 'Mudança decúbito prescrita', 'Paciente conforme o relógio (horário correto)', 'Superfícies de apoio (colchão)', 'Pele íntegra / proeminências']
+            }
+        ];
+
+        let metasConfig = JSON.parse(localStorage.getItem('metasConfigCache')) || defaultMetas;
+        let auditHistoryCache = JSON.parse(localStorage.getItem('auditHistoryCache')) || [];
+        let actionPlansCache = JSON.parse(localStorage.getItem('actionPlansCache')) || [];
+        let coordinatorsMap = JSON.parse(localStorage.getItem('coordinatorsMapCache')) || {};
+        let signatureCanvas, signatureCtx, isDrawing = false;
+        let passwordCallback = null;
+
+        window.addEventListener('firebase-ready', function() {
+            if (!localStorage.getItem('lgpdAccepted')) {
+                document.getElementById('lgpd-welcome-modal').classList.remove('hidden');
+            }
+            const dataInput = document.getElementById('audit-data');
+            if (dataInput && !dataInput.value) {
+                dataInput.valueAsDate = new Date();
+            }
+            renderAuditForm();
+            initSignaturePad();
+            initRealtimeListeners();
+            updateSetoresDatalist();
+            renderDashboard();
+            renderHistory();
+            renderActionPlans();
+            updateActionMetaSelect();
+        });
+
+        function normalizeSetorKey(setor) {
+            return (setor || '').trim().toLowerCase();
+        }
+
+        function getCoordinatorBySetor(setor) {
+            const key = normalizeSetorKey(setor);
+            if (!key) return null;
+            return coordinatorsMap[key] || null;
+        }
+
+        function openCoordinatorModal() {
+            const selectedSetor = document.getElementById('filter-setor')?.value || document.getElementById('audit-setor')?.value || '';
+            document.getElementById('coord-setor').value = selectedSetor;
+            loadCoordinatorForSetor();
+            document.getElementById('coordinator-modal').classList.remove('hidden');
+        }
+
+        function closeCoordinatorModal() {
+            document.getElementById('coordinator-modal').classList.add('hidden');
+        }
+
+        function loadCoordinatorForSetor() {
+            const setor = document.getElementById('coord-setor').value.trim();
+            const existing = getCoordinatorBySetor(setor);
+            document.getElementById('coord-name').value = existing?.name || '';
+            document.getElementById('coord-phone').value = existing?.phone || '';
+            document.getElementById('coord-email').value = existing?.email || '';
+        }
+
+        async function saveCoordinator() {
+            const setor = document.getElementById('coord-setor').value.trim();
+            const name = document.getElementById('coord-name').value.trim();
+            const phone = document.getElementById('coord-phone').value.replace(/\D/g, '');
+            const email = document.getElementById('coord-email').value.trim();
+
+            if (!setor) {
+                alert('Informe o nome do setor.');
+                return;
+            }
+
+            const key = normalizeSetorKey(setor);
+            coordinatorsMap[key] = { setor, name, phone, email };
+            localStorage.setItem('coordinatorsMapCache', JSON.stringify(coordinatorsMap));
+
+            try {
+                if (window.fbDb && window.fbSetDoc && window.fbDoc) {
+                    await window.fbSetDoc(window.fbDoc(window.fbDb, "configuracoes", "coordenadores_setor"), { mapa: coordinatorsMap });
+                }
+            } catch (e) {
+                console.warn("Coordenador salvo localmente.", e);
+            }
+
+            closeCoordinatorModal();
+            showAlert(`Contato do coordenador salvo para ${setor}!`, 'success');
+        }
+
+        function buildCoordinatorSummary() {
+            const setorFilter = document.getElementById('filter-setor')?.value || '';
+            const periodLabel = document.getElementById('filter-periodo')?.selectedOptions[0]?.text || 'Todo o Período';
+            let filtered = setorFilter ? auditHistoryCache.filter(a => a.setor === setorFilter) : auditHistoryCache;
+            filtered = filterByPeriod(filtered);
+
+            const total = filtered.length;
+            const mediaScore = total > 0
+                ? (filtered.reduce((acc, a) => acc + (a.pontuacaoGeral || 0), 0) / total).toFixed(1)
+                : '0.0';
+
+            let graves = 0;
+            const failureMap = {};
+            filtered.forEach(a => {
+                for (let mId in a.metas) {
+                    const items = a.metas[mId]?.items || [];
+                    items.forEach(it => {
+                        if (it.status === 'NC') {
+                            if (it.severity === 'Grave/Evento Adverso') graves++;
+                            failureMap[it.item] = (failureMap[it.item] || 0) + 1;
+                        }
+                    });
+                }
+            });
+
+            const topFalhas = Object.entries(failureMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([item, qtd]) => `- ${item} (${qtd}x)`);
+
+            const pendencias = actionPlansCache.filter(act => {
+                const matchSetor = !setorFilter || normalizeSetorKey(act.where) === normalizeSetorKey(setorFilter);
+                return matchSetor && act.status !== 'Concluído';
+            });
+
+            const coord = setorFilter ? getCoordinatorBySetor(setorFilter) : null;
+            const setorTitulo = setorFilter || 'Todos os Setores';
+            const saudacao = coord?.name ? `Olá, ${coord.name}!` : `Olá, Coordenação!`;
+
+            const lines = [
+                `${saudacao}`,
+                `*Relatório de Auditoria – Qualidade & Segurança*`,
+                `• *Setor:* ${setorTitulo}`,
+                `• *Período:* ${periodLabel}`,
+                `• *Auditorias:* ${total}`,
+                `• *Conformidade Média:* ${mediaScore}%`,
+                `• *Falhas Graves:* ${graves}`,
+                `• *Planos 5W2H Pendentes:* ${pendencias.length}`
+            ];
+
+            if (topFalhas.length > 0) {
+                lines.push(``, `*Principais NCs:*`, ...topFalhas);
+            }
+
+            lines.push(``, `_Enviado em ${new Date().toLocaleDateString('pt-BR')}_`);
+
+            return {
+                text: lines.join('\n'),
+                coord,
+                setorTitulo
+            };
+        }
+
+        function sendReportWhatsApp() {
+            const { text, coord } = buildCoordinatorSummary();
+            let phone = coord?.phone || '';
+            if (phone && phone.length <= 11 && !phone.startsWith('55')) {
+                phone = '55' + phone;
+            }
+            const url = phone
+                ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+                : `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function sendReportEmail() {
+            const { text, coord, setorTitulo } = buildCoordinatorSummary();
+            const to = coord?.email || '';
+            const subject = `Relatório de Auditoria Assistencial – ${setorTitulo}`;
+            const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+            window.location.href = url;
+        }
+
+        function acceptLgpdTerms() {
+            localStorage.setItem('lgpdAccepted', 'true');
+            document.getElementById('lgpd-welcome-modal').classList.add('hidden');
+        }
+
+        function updateSetoresDatalist() {
+            const datalist = document.getElementById('setores-datalist');
+            if (!datalist) return;
+            const setoresAudit = auditHistoryCache.map(a => a.setor).filter(Boolean);
+            const setoresActions = actionPlansCache.map(a => a.where).filter(Boolean);
+            const setoresCoord = Object.values(coordinatorsMap).map(c => c.setor).filter(Boolean);
+            const unicos = [...new Set([...setoresAudit, ...setoresActions, ...setoresCoord])].sort();
+            datalist.innerHTML = unicos.map(s => `<option value="${s}">`).join('');
+        }
+
+        function prepareAndPrint() {
+            const dateLabel = document.getElementById('print-date-label');
+            const periodLabel = document.getElementById('print-period-label');
+            const unitLabel = document.getElementById('print-unit-label');
+            const coordLabel = document.getElementById('print-coord-label');
+
+            if (dateLabel) {
+                dateLabel.textContent = `Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
+            }
+            if (periodLabel) {
+                const periodoTexto = document.getElementById('filter-periodo')?.selectedOptions[0]?.text || 'Todo o Período';
+                periodLabel.textContent = `Período: ${periodoTexto}`;
+            }
+
+            const setor = document.getElementById('filter-setor')?.value || '';
+            if (unitLabel) {
+                unitLabel.textContent = setor || 'Todos os Setores';
+            }
+            if (coordLabel) {
+                const coord = setor ? getCoordinatorBySetor(setor) : null;
+                coordLabel.textContent = coord?.name ? `Coordenador(a): ${coord.name}` : '';
+            }
+
+            window.print();
+        }
+
+        function requestPassword(callback) {
+            passwordCallback = callback;
+            const input = document.getElementById('modal-password-input');
+            if (input) input.value = '';
+            document.getElementById('password-modal').classList.remove('hidden');
+            setTimeout(() => { if (input) input.focus(); }, 100);
+        }
+
+        function closePasswordModal(success) {
+            document.getElementById('password-modal').classList.add('hidden');
+            if (success && passwordCallback) {
+                passwordCallback();
+            }
+            passwordCallback = null;
+        }
+
+        function confirmPasswordModal() {
+            const input = document.getElementById('modal-password-input');
+            if (!input) return;
+            if (input.value === '1234') {
+                closePasswordModal(true);
+            } else {
+                alert('Senha incorreta!');
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function updateConnectionBadge(status) {
+            const badge = document.getElementById('connection-badge');
+            if (!badge) return;
+            if (status === 'online') {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Online (Nuvem)`;
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-200 border border-rose-400/30";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Modo Offline`;
+            }
+        }
+
+        function validateLGPD(input) {
+            const val = input.value.trim();
+            const words = val.split(/\s+/);
+            if (words.length > 4 && !val.includes('.') && !val.toLowerCase().includes('pront')) {
+                alert('Atenção à LGPD: Para preservar o sigilo do paciente, recomenda-se usar apenas as iniciais (ex: J.S.) e o número do prontuário.');
+            }
+        }
+
+        function startDictation(inputId) {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Seu navegador não suporta digitação por voz.');
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            const inputField = document.getElementById(inputId);
+            const micBtn = document.getElementById(inputId + '-mic-icon');
+            if (micBtn) micBtn.classList.add('text-rose-600', 'animate-pulse');
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                inputField.value = inputField.value ? inputField.value + ' ' + speechResult : speechResult;
+                if (micBtn) micBtn.classList.remove('text-rose-600', 'animate-pulse');
+            };
+
+            recognition.onerror = recognition.onend = function() {
+                if (micBtn) micBtn.classList.remove('text-rose-600', 'animate-pulse');
+            };
+
+            recognition.start();
+        }
+
+        async function syncMetasToCloud() {
+            localStorage.setItem('metasConfigCache', JSON.stringify(metasConfig));
+            try {
+                if (window.fbDb && window.fbSetDoc && window.fbDoc) {
+                    await window.fbSetDoc(window.fbDoc(window.fbDb, "configuracoes", "metas_padrao"), { lista: metasConfig });
+                }
+            } catch (e) {
+                console.warn("Metas salvas localmente (offline).", e);
+            }
+        }
+
+        function initRealtimeListeners() {
+            try {
+                window.fbOnSnapshot(window.fbCollection(window.fbDb, "auditorias"), (snapshot) => {
+                    auditHistoryCache = [];
+                    snapshot.forEach((docSnap) => {
+                        auditHistoryCache.push({ fbId: docSnap.id, ...docSnap.data() });
+                    });
+                    auditHistoryCache.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                    updateSetoresDatalist();
+                    renderDashboard();
+                    renderHistory();
+                    updateConnectionBadge('online');
+                });
+
+                window.fbOnSnapshot(window.fbCollection(window.fbDb, "planos_acao"), (snapshot) => {
+                    actionPlansCache = [];
+                    snapshot.forEach((docSnap) => {
+                        actionPlansCache.push({ fbId: docSnap.id, ...docSnap.data() });
+                    });
+                    localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                    updateSetoresDatalist();
+                    renderDashboard();
+                    renderActionPlans();
+                });
+
+                window.fbOnSnapshot(window.fbDoc(window.fbDb, "configuracoes", "metas_padrao"), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data().lista) {
+                        metasConfig = docSnap.data().lista;
+                        localStorage.setItem('metasConfigCache', JSON.stringify(metasConfig));
+                        renderAuditForm();
+                    }
+                });
+
+                window.fbOnSnapshot(window.fbDoc(window.fbDb, "configuracoes", "coordenadores_setor"), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data().mapa) {
+                        coordinatorsMap = docSnap.data().mapa;
+                        localStorage.setItem('coordinatorsMapCache', JSON.stringify(coordinatorsMap));
+                        updateSetoresDatalist();
+                    }
+                });
+            } catch (error) {
+                console.warn("Modo Offline Ativo", error);
+                updateConnectionBadge('offline');
+            }
+        }
+
+        function initSignaturePad() {
+            signatureCanvas = document.getElementById('signature-pad');
+            if (!signatureCanvas) return;
+            signatureCtx = signatureCanvas.getContext('2d');
+            signatureCanvas.width = signatureCanvas.offsetWidth;
+            signatureCanvas.height = signatureCanvas.offsetHeight;
+            signatureCtx.strokeStyle = '#1e3a8a';
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+
+            const startDraw = (e) => {
+                isDrawing = true;
+                const rect = signatureCanvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                signatureCtx.beginPath();
+                signatureCtx.moveTo(x, y);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                const rect = signatureCanvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                signatureCtx.lineTo(x, y);
+                signatureCtx.stroke();
+            };
+
+            const stopDraw = () => { isDrawing = false; };
+
+            signatureCanvas.addEventListener('mousedown', startDraw);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDraw);
+            signatureCanvas.addEventListener('mouseleave', stopDraw);
+            signatureCanvas.addEventListener('touchstart', startDraw);
+            signatureCanvas.addEventListener('touchmove', draw);
+            signatureCanvas.addEventListener('touchend', stopDraw);
+        }
+
+        function clearSignature() {
+            if (signatureCtx && signatureCanvas) {
+                signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            }
+        }
+
+        function switchTab(tab) {
+            ['audit', 'dashboard', 'history', 'actionplans'].forEach(s => {
+                const sec = document.getElementById(`section-${s}`);
+                const t = document.getElementById(`tab-${s}`);
+                if (sec) sec.classList.add('hidden');
+                if (t) t.className = "px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-blue-100 hover:bg-blue-700/50 flex items-center gap-1.5";
+            });
+
+            const activeSec = document.getElementById(`section-${tab}`);
+            const activeTab = document.getElementById(`tab-${tab}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+            if (activeTab) activeTab.className = "px-3.5 py-2 text-sm font-medium rounded-lg transition-all bg-white text-blue-900 shadow-sm flex items-center gap-1.5";
+
+            if (tab === 'dashboard') renderDashboard();
+            if (tab === 'history') renderHistory();
+            if (tab === 'actionplans') renderActionPlans();
+        }
+
+        function handleRadioChange(metaId, index) {
+            const radios = document.getElementsByName(`${metaId}_item_${index}`);
+            const extraDiv = document.getElementById(`extra_${metaId}_${index}`);
+            if (!extraDiv) return;
+
+            let val = 'C';
+            for (const r of radios) { if (r.checked) { val = r.value; break; } }
+            if (val === 'NC') extraDiv.classList.remove('hidden');
+            else extraDiv.classList.add('hidden');
+        }
+
+        function markAllConform(metaId) {
+            const meta = metasConfig.find(m => m.id === metaId);
+            if (!meta) return;
+            meta.items.forEach((_, index) => {
+                const radios = document.getElementsByName(`${metaId}_item_${index}`);
+                for (const r of radios) {
+                    if (r.value === 'C') r.checked = true;
+                }
+                handleRadioChange(metaId, index);
+            });
+        }
+
+        function renderAuditForm() {
+            const container = document.getElementById('goals-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            metasConfig.forEach(meta => {
+                let itemsHTML = '';
+                meta.items.forEach((item, index) => {
+                    itemsHTML += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td class="p-3.5 text-base text-slate-500 font-bold align-top pt-4">${index + 1}</td>
+                            <td class="p-3.5 text-base sm:text-lg text-slate-900 font-semibold align-top pt-4">
+                                ${item}
+                                <div id="extra_${meta.id}_${index}" class="hidden mt-2.5 p-3 bg-rose-50/70 border border-rose-200 rounded-xl">
+                                    <label class="block text-xs font-bold text-rose-800 uppercase mb-1.5">Criticidade da NC:</label>
+                                    <div class="flex items-center gap-4 flex-wrap">
+                                        <label class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 cursor-pointer">
+                                            <input type="radio" name="severity_${meta.id}_${index}" value="Baixa" class="text-rose-600 focus:ring-rose-500 w-4 h-4"> Baixa
+                                        </label>
+                                        <label class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 cursor-pointer">
+                                            <input type="radio" name="severity_${meta.id}_${index}" value="Média" checked class="text-rose-600 focus:ring-rose-500 w-4 h-4"> Média
+                                        </label>
+                                        <label class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 cursor-pointer">
+                                            <input type="radio" name="severity_${meta.id}_${index}" value="Grave/Evento Adverso" class="text-rose-600 focus:ring-rose-500 w-4 h-4"> Grave
+                                        </label>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3.5 text-center align-top pt-4"><input type="radio" name="${meta.id}_item_${index}" value="C" checked onchange="handleRadioChange('${meta.id}', ${index})" class="text-emerald-600 focus:ring-emerald-500 w-6 h-6"></td>
+                            <td class="p-3.5 text-center align-top pt-4"><input type="radio" name="${meta.id}_item_${index}" value="NC" onchange="handleRadioChange('${meta.id}', ${index})" class="text-rose-600 focus:ring-rose-500 w-6 h-6"></td>
+                            <td class="p-3.5 text-center align-top pt-4"><input type="radio" name="${meta.id}_item_${index}" value="NA" onchange="handleRadioChange('${meta.id}', ${index})" class="text-slate-400 focus:ring-slate-400 w-6 h-6"></td>
+                            <td class="p-3.5 text-right align-top pt-4">
+                                <button type="button" onclick="promptDeleteItem('${meta.id}', ${index})" title="Excluir Item" class="text-rose-500 hover:text-rose-700 p-1 rounded"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative";
+                card.innerHTML = `
+                    <div class="bg-blue-700 text-white px-4.5 py-4 flex flex-col items-center justify-center text-center gap-2 relative">
+                        <button type="button" onclick="promptDeleteMeta('${meta.id}')" title="Excluir Meta Inteira" class="absolute right-3 top-3 bg-rose-600 hover:bg-rose-700 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs shadow transition-all">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <h3 class="font-bold text-base sm:text-lg tracking-wide pr-10 pl-10">${meta.title}</h3>
+                        <div class="flex items-center gap-2 flex-wrap justify-center">
+                            <span class="text-xs bg-blue-600 px-3 py-1 rounded-lg border border-blue-500">${meta.formulaNote}</span>
+                            <button type="button" onclick="markAllConform('${meta.id}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-2.5 py-1 rounded-lg shadow-sm transition-all flex items-center gap-1">
+                                <i class="fa-solid fa-check-double"></i> Tudo C
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-3 overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    <th class="p-3 w-12">Nº</th>
+                                    <th class="p-3">Itens Avaliados</th>
+                                    <th class="p-3 text-center w-24 text-emerald-600">C</th>
+                                    <th class="p-3 text-center w-24 text-rose-600">NC</th>
+                                    <th class="p-3 text-center w-24 text-slate-500">NA</th>
+                                    <th class="p-3 text-right w-16">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHTML}</tbody>
+                        </table>
+                        <div class="mt-3 px-1">
+                            <button type="button" onclick="promptNewItemModal('${meta.id}')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-700 font-semibold text-xs transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Adicionar Item Avaliado
+                            </button>
+                        </div>
+                    </div>
+                    <div class="px-4 pb-4 pt-2 bg-slate-50/80 border-t border-slate-100">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Observações da Meta</label>
+                            <button type="button" onclick="startDictation('${meta.id}-obs')" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all">
+                                <i id="${meta.id}-obs-mic-icon" class="fa-solid fa-microphone"></i> Ditar
+                            </button>
+                        </div>
+                        <input type="text" id="${meta.id}-obs" placeholder="Digite ou dite sua observação..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm bg-white shadow-sm">
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            updateActionMetaSelect();
+        }
+
+        function promptNewMeta() {
+            requestPassword(() => {
+                openNewMetaModal();
+            });
+        }
+
+        function openNewMetaModal() {
+            document.getElementById('new-meta-title').value = '';
+            document.getElementById('new-meta-formula').value = 'Fórmula: (Itens conf. ÷ Válidos) × 100';
+            document.getElementById('new-meta-items').value = '';
+            document.getElementById('new-meta-modal').classList.remove('hidden');
+        }
+
+        function closeNewMetaModal() {
+            document.getElementById('new-meta-modal').classList.add('hidden');
+        }
+
+        async function saveNewMeta() {
+            const title = document.getElementById('new-meta-title').value.trim();
+            const formulaNote = document.getElementById('new-meta-formula').value.trim();
+            const itemsRaw = document.getElementById('new-meta-items').value.trim();
+
+            if (!title || !itemsRaw) {
+                alert('Preencha o título e pelo menos um item avaliado.');
+                return;
+            }
+
+            const items = itemsRaw.split(/[\n,]+/).map(i => i.trim()).filter(i => i.length > 0);
+            const newId = 'meta_custom_' + Date.now();
+
+            metasConfig.push({
+                id: newId,
+                title,
+                formulaNote: formulaNote || 'Fórmula: (Itens conf. ÷ Válidos) × 100',
+                items
+            });
+
+            await syncMetasToCloud();
+            renderAuditForm();
+            closeNewMetaModal();
+            showAlert('Nova meta adicionada e sincronizada!', 'success');
+        }
+
+        function promptDeleteMeta(metaId) {
+            requestPassword(async () => {
+                if (!confirm('Deseja realmente excluir esta meta do formulário?')) return;
+                metasConfig = metasConfig.filter(m => m.id !== metaId);
+                await syncMetasToCloud();
+                renderAuditForm();
+                showAlert('Meta excluída com sucesso.', 'success');
+            });
+        }
+
+        function promptNewItemModal(metaId) {
+            requestPassword(() => {
+                document.getElementById('current-target-meta-id').value = metaId;
+                document.getElementById('new-item-desc').value = '';
+                document.getElementById('new-item-modal').classList.remove('hidden');
+            });
+        }
+
+        function closeNewItemModal() {
+            document.getElementById('new-item-modal').classList.add('hidden');
+        }
+
+        async function saveNewItem() {
+            const metaId = document.getElementById('current-target-meta-id').value;
+            const itemDesc = document.getElementById('new-item-desc').value.trim();
+
+            if (!itemDesc) {
+                alert('Informe a descrição do item.');
+                return;
+            }
+
+            const meta = metasConfig.find(m => m.id === metaId);
+            if (meta) {
+                meta.items.push(itemDesc);
+                await syncMetasToCloud();
+                renderAuditForm();
+                closeNewItemModal();
+                showAlert('Item adicionado com sucesso!', 'success');
+            }
+        }
+
+        function promptDeleteItem(metaId, itemIndex) {
+            requestPassword(async () => {
+                const meta = metasConfig.find(m => m.id === metaId);
+                if (meta) {
+                    if (meta.items.length <= 1) {
+                        alert('A meta precisa ter pelo menos um item avaliado.');
+                        return;
+                    }
+                    if (confirm('Deseja realmente excluir este item avaliado?')) {
+                        meta.items.splice(itemIndex, 1);
+                        await syncMetasToCloud();
+                        renderAuditForm();
+                        showAlert('Item excluído com sucesso.', 'success');
+                    }
+                }
+            });
+        }
+
+        function updateActionMetaSelect() {
+            const select = document.getElementById('action-meta-title');
+            if (!select) return;
+            let options = '';
+            metasConfig.forEach(m => {
+                options += `<option value="${m.title}">${m.title}</option>`;
+            });
+            select.innerHTML = options;
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('custom-alert');
+            const alertMsg = document.getElementById('alert-message');
+            const alertIcon = document.getElementById('alert-icon');
+            if (!alertBox) return;
+            alertMsg.textContent = message;
+            alertBox.className = "mb-4 p-3.5 rounded-xl border flex items-center justify-between transition-all shadow-sm no-print";
+
+            if (type === 'success') {
+                alertBox.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                alertIcon.className = "fa-solid fa-circle-check text-emerald-600 text-xl";
+            } else {
+                alertBox.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+                alertIcon.className = "fa-solid fa-circle-exclamation text-rose-600 text-xl";
+            }
+            alertBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeAlert() { document.getElementById('custom-alert').classList.add('hidden'); }
+
+        async function saveAudit() {
+            const setor = document.getElementById('audit-setor').value.trim() || 'Setor Geral';
+            const leito = document.getElementById('audit-leito').value.trim() || 'Geral';
+            const data = document.getElementById('audit-data').value || new Date().toISOString().slice(0, 10);
+            const enfermeiro = document.getElementById('audit-enfermeiro').value.trim() || 'Auditor(a)';
+
+            const signatureDataUrl = signatureCanvas ? signatureCanvas.toDataURL() : '';
+            let auditData = {
+                id: 'AUD-' + Date.now(),
+                setor, leito, data, enfermeiro,
+                signature: signatureDataUrl,
+                metas: {}, pontuacaoGeral: 0, totalNC: 0
+            };
+
+            let sumConformidade = 0, totalMetas = 0, totalNCGlobal = 0;
+
+            for (const meta of metasConfig) {
+                let conf = 0, nc = 0, na = 0;
+                let itemsResult = [];
+                const observacao = document.getElementById(`${meta.id}-obs`)?.value.trim() || '';
+                let actionEligibleFailures = [];
+                let hasGraveFailure = false;
+
+                for (let index = 0; index < meta.items.length; index++) {
+                    const item = meta.items[index];
+                    const radios = document.getElementsByName(`${meta.id}_item_${index}`);
+                    let val = 'C';
+                    for (const r of radios) { if (r.checked) { val = r.value; break; } }
+
+                    let severity = 'Média';
+                    if (val === 'NC') {
+                        const sevRadios = document.getElementsByName(`severity_${meta.id}_${index}`);
+                        for (const sr of sevRadios) { if (sr.checked) { severity = sr.value; break; } }
+                        if (severity === 'Grave/Evento Adverso') hasGraveFailure = true;
+                        if (AUTO_ACTION_SEVERITIES.includes(severity)) {
+                            actionEligibleFailures.push(`${item} (${severity})`);
+                        }
+                        totalNCGlobal++;
+                        nc++;
+                    } else if (val === 'C') conf++;
+                    else if (val === 'NA') na++;
+
+                    itemsResult.push({ item, status: val, severity });
+                }
+
+                const validos = meta.items.length - na;
+                let percentual = validos > 0 ? (conf / validos) * 100 : 0;
+
+                auditData.metas[meta.id] = {
+                    title: meta.title, conf, nc, na, validos,
+                    percentual: parseFloat(percentual.toFixed(1)),
+                    items: itemsResult, observacao
+                };
+
+                sumConformidade += percentual;
+                totalMetas++;
+
+                if (actionEligibleFailures.length > 0) {
+                    await autoCreateActionPlan(
+                        meta.title,
+                        setor,
+                        `Conformidade em ${percentual.toFixed(1)}%. Itens NC (${AUTO_ACTION_SEVERITIES.join(' / ')}): ${actionEligibleFailures.join(', ')}`,
+                        hasGraveFailure
+                    );
+                }
+            }
+
+            auditData.pontuacaoGeral = parseFloat((sumConformidade / totalMetas).toFixed(1));
+            auditData.totalNC = totalNCGlobal;
+
+            try {
+                if (window.fbDb && window.fbAddDoc && window.fbCollection) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "auditorias"), auditData);
+                    showAlert(`Auditoria salva na nuvem! Pontuação: ${auditData.pontuacaoGeral}%`, 'success');
+                    updateConnectionBadge('online');
+                } else { throw new Error(); }
+            } catch (error) {
+                auditHistoryCache.unshift(auditData);
+                localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                updateSetoresDatalist();
+                renderDashboard();
+                renderHistory();
+                showAlert(`Modo Offline: Auditoria salva localmente! Pontuação: ${auditData.pontuacaoGeral}%`, 'success');
+                updateConnectionBadge('offline');
+            }
+            resetForm(); 
+        }
+
+        async function autoCreateActionPlan(metaTitle, setor, motivo, isUrgent = false) {
+            const exists = actionPlansCache.some(a => a.what.includes(metaTitle) && a.where === setor && a.status === 'Pendente');
+            if (!exists) {
+                const daysOffset = isUrgent ? 2 : 7;
+                let newAction = {
+                    id: 'ACT-' + Date.now() + Math.floor(Math.random()*100),
+                    metaTitle: metaTitle,
+                    priority: isUrgent ? 'Urgente' : 'Normal',
+                    what: `Correção e Treinamento na ${metaTitle}`,
+                    why: motivo, where: setor, who: 'Enfermeiro(a) Responsável',
+                    when: new Date(Date.now() + daysOffset*24*60*60*1000).toISOString().slice(0,10),
+                    how: 'Alinhamento com equipe assistencial',
+                    status: 'Pendente', closingEvidence: ''
+                };
+                try {
+                    if (window.fbDb && window.fbAddDoc) {
+                        await window.fbAddDoc(window.fbCollection(window.fbDb, "planos_acao"), newAction);
+                    } else { throw new Error(); }
+                } catch (e) {
+                    actionPlansCache.push(newAction);
+                    localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                    renderActionPlans();
+                }
+            }
+        }
+
+        function resetForm() {
+            ['audit-setor', 'audit-leito', 'audit-enfermeiro'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const dataInput = document.getElementById('audit-data');
+            if (dataInput) dataInput.valueAsDate = new Date();
+            clearSignature();
+            renderAuditForm();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function filterByPeriod(history) {
+            const period = document.getElementById('filter-periodo').value;
+            const customContainer = document.getElementById('custom-date-container');
+            
+            if (period === 'custom') {
+                if (customContainer) customContainer.classList.remove('hidden');
+                const start = document.getElementById('filter-date-start').value;
+                const end = document.getElementById('filter-date-end').value;
+                if (!start || !end) return history;
+                return history.filter(a => a.data >= start && a.data <= end);
+            } else {
+                if (customContainer) customContainer.classList.add('hidden');
+            }
+
+            if (period === 'all') return history;
+            const today = new Date().toISOString().slice(0, 10);
+            return history.filter(a => {
+                if (period === 'today') return a.data === today;
+                if (period === '7days') {
+                    const diffTime = Math.abs(new Date() - new Date(a.data));
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7;
+                }
+                if (period === 'month') return a.data.slice(0, 7) === today.slice(0, 7);
+                return true;
+            });
+        }
+
+        function renderDashboard() {
+            const history = auditHistoryCache;
+            const setorFilter = document.getElementById('filter-setor')?.value || '';
+            const paretoSevFilter = document.getElementById('filter-pareto-severity')?.value || 'all';
+
+            const setorSelect = document.getElementById('filter-setor');
+            const setoresUnicos = [...new Set(history.map(a => a.setor))];
+            let setorOptions = '<option value="">Todos os Setores</option>';
+            setoresUnicos.forEach(s => {
+                setorOptions += `<option value="${s}" ${s === setorFilter ? 'selected' : ''}>${s}</option>`;
+            });
+            if (setorSelect) setorSelect.innerHTML = setorOptions;
+
+            let filteredHistory = setorFilter ? history.filter(a => a.setor === setorFilter) : history;
+            filteredHistory = filterByPeriod(filteredHistory);
+
+            const totalAuditorias = filteredHistory.length;
+            let somaPontuacao = 0, somaNC = 0;
+            let setorMedias = {}, failureCounts = {}, paretoFilteredCounts = {}, metaScores = {};
+            let severityCounts = { 'Baixa': 0, 'Média': 0, 'Grave/Evento Adverso': 0 };
+
+            metasConfig.forEach(m => { metaScores[m.id] = { sum: 0, count: 0, title: m.title }; });
+
+            filteredHistory.forEach(a => {
+                somaPontuacao += a.pontuacaoGeral;
+                somaNC += a.totalNC;
+
+                if (!setorMedias[a.setor]) setorMedias[a.setor] = { soma: 0, total: 0 };
+                setorMedias[a.setor].soma += a.pontuacaoGeral;
+                setorMedias[a.setor].total += 1;
+
+                for (let mId in a.metas) {
+                    let mData = a.metas[mId];
+                    if (metaScores[mId]) {
+                        metaScores[mId].sum += mData.percentual;
+                        metaScores[mId].count++;
+                    }
+                    if (mData.items) {
+                        mData.items.forEach(itemObj => {
+                            if (itemObj.status === 'NC') {
+                                let sev = itemObj.severity || 'Média';
+                                failureCounts[itemObj.item] = (failureCounts[itemObj.item] || 0) + 1;
+                                
+                                if (paretoSevFilter === 'all' || sev === paretoSevFilter) {
+                                    paretoFilteredCounts[itemObj.item] = (paretoFilteredCounts[itemObj.item] || 0) + 1;
+                                }
+
+                                if (severityCounts[sev] !== undefined) {
+                                    severityCounts[sev]++;
+                                } else {
+                                    severityCounts['Média']++;
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            document.getElementById('kpi-pontuacao-geral').textContent = (totalAuditorias > 0 ? (somaPontuacao / totalAuditorias).toFixed(1) : 0) + '%';
+            document.getElementById('kpi-total-auditorias').textContent = totalAuditorias;
+            document.getElementById('kpi-total-nc').textContent = totalAuditorias > 0 ? (somaNC / totalAuditorias).toFixed(1) : 0;
+
+            const graveBadge = document.getElementById('kpi-grave-badge');
+            const totalGraves = severityCounts['Grave/Evento Adverso'] || 0;
+            if (graveBadge) {
+                if (totalGraves > 0) {
+                    graveBadge.textContent = `${totalGraves} Grave${totalGraves > 1 ? 's' : ''}`;
+                    graveBadge.classList.remove('hidden');
+                } else {
+                    graveBadge.classList.add('hidden');
+                }
+            }
+
+            let totalActions = actionPlansCache.length;
+            let completedActions = actionPlansCache.filter(a => a.status === 'Concluído').length;
+            let actionRate = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+            document.getElementById('kpi-actions-rate').textContent = actionRate + '%';
+
+            renderColumnChart(setorMedias);
+            renderDoughnutChart();
+            renderSeverityChart(severityCounts);
+            renderLineChart(filteredHistory);
+            renderVolumeChart(filteredHistory);
+            renderParetoChart(paretoFilteredCounts);
+            renderMetaRadarChart(metaScores);
+            renderRecommendations(filteredHistory, setorFilter, failureCounts, totalGraves);
+        }
+
+        function renderColumnChart(setorMedias) {
+            const container = document.getElementById('chart-column-container');
+            if (!container) return;
+            container.innerHTML = '';
+            let keys = Object.keys(setorMedias);
+            if (keys.length === 0) {
+                container.innerHTML = `<div class="m-auto text-sm text-slate-400 py-10 text-center">Sem dados para exibir setores.</div>`;
+                return;
+            }
+
+            keys.forEach(setor => {
+                let media = setorMedias[setor].soma / setorMedias[setor].total;
+                let widthPct = Math.max(10, Math.min(100, media));
+                let color = media >= 90 ? 'bg-blue-600' : (media >= 80 ? 'bg-amber-500' : 'bg-rose-500');
+
+                container.innerHTML += `
+                    <div class="flex flex-col gap-1.5 w-full bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-bold text-slate-700 truncate" title="${setor}">${setor}</span>
+                            <span class="font-bold text-slate-800">${media.toFixed(1)}%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden">
+                            <div class="${color} h-full rounded-full transition-all duration-500" style="width: ${widthPct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderDoughnutChart() {
+            const container = document.getElementById('chart-doughnut-container');
+            const legend = document.getElementById('doughnut-legend');
+            if (!container || !legend) return;
+
+            let concluidos = actionPlansCache.filter(a => a.status === 'Concluído').length;
+            let emAndamento = actionPlansCache.filter(a => a.status === 'Em Andamento').length;
+            let pendentes = actionPlansCache.filter(a => a.status === 'Pendente').length;
+            let total = concluidos + emAndamento + pendentes;
+
+            if (total === 0) {
+                container.innerHTML = `<div class="text-sm text-slate-400">Sem ações</div>`;
+                legend.innerHTML = `Nenhum plano de ação registrado.`;
+                return;
+            }
+
+            let pC = (concluidos / total) * 100;
+            let pE = (emAndamento / total) * 100;
+            
+            container.innerHTML = `
+                <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="4"></circle>
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="${pE} ${100 - pE}" stroke-dashoffset="-${pC}"></circle>
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="${pC} ${100 - pC}"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span class="text-base font-bold text-slate-800">${total}</span>
+                    <span class="text-[11px] text-slate-400 uppercase">Ações</span>
+                </div>
+            `;
+
+            legend.innerHTML = `
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500"></span> Concluídos: <strong>${concluidos}</strong></div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span> Em Andamento: <strong>${emAndamento}</strong></div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-slate-300"></span> Pendentes: <strong>${pendentes}</strong></div>
+            `;
+        }
+
+        function renderSeverityChart(severityCounts) {
+            const container = document.getElementById('chart-severity-container');
+            const legend = document.getElementById('severity-legend');
+            if (!container || !legend) return;
+
+            let baixa = severityCounts['Baixa'] || 0;
+            let media = severityCounts['Média'] || 0;
+            let grave = severityCounts['Grave/Evento Adverso'] || 0;
+            let total = baixa + media + grave;
+
+            if (total === 0) {
+                container.innerHTML = `<div class="text-sm text-slate-400">Sem falhas</div>`;
+                legend.innerHTML = `Nenhuma não-conformidade registrada.`;
+                return;
+            }
+
+            let pGrave = (grave / total) * 100;
+            let pMedia = (media / total) * 100;
+            let pBaixa = (baixa / total) * 100;
+
+            let offset2 = -pGrave;
+            let offset3 = -(pGrave + pMedia);
+
+            container.innerHTML = `
+                <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="4"></circle>
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e11d48" stroke-width="4" stroke-dasharray="${pGrave} ${100 - pGrave}" stroke-dashoffset="0"></circle>
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="${pMedia} ${100 - pMedia}" stroke-dashoffset="${offset2}"></circle>
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="${pBaixa} ${100 - pBaixa}" stroke-dashoffset="${offset3}"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span class="text-base font-bold text-slate-800">${total}</span>
+                    <span class="text-[11px] text-slate-400 uppercase">Total NC</span>
+                </div>
+            `;
+
+            legend.innerHTML = `
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-rose-600"></span> Grave: <strong>${grave}</strong> (${Math.round(pGrave)}%)</div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span> Média: <strong>${media}</strong> (${Math.round(pMedia)}%)</div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-blue-500"></span> Baixa: <strong>${baixa}</strong> (${Math.round(pBaixa)}%)</div>
+            `;
+        }
+
+        function renderLineChart(history) {
+            const container = document.getElementById('chart-line-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let monthlyMap = {};
+            history.forEach(a => {
+                if (!a.data) return;
+                let mesAno = a.data.slice(0, 7);
+                if (!monthlyMap[mesAno]) monthlyMap[mesAno] = { sumScore: 0, count: 0 };
+                monthlyMap[mesAno].sumScore += a.pontuacaoGeral;
+                monthlyMap[mesAno].count++;
+            });
+
+            let sortedMeses = Object.keys(monthlyMap).sort().slice(-6);
+            if (sortedMeses.length === 0) {
+                container.innerHTML = `<div class="m-auto text-sm text-slate-400">Sem dados mensais suficientes.</div>`;
+                return;
+            }
+
+            let pointsData = sortedMeses.map(mesAno => {
+                let [ano, mes] = mesAno.split('-');
+                let mediaMes = monthlyMap[mesAno].sumScore / monthlyMap[mesAno].count;
+                return { label: `${mes}/${ano}`, val: parseFloat(mediaMes.toFixed(1)) };
+            });
+
+            let svgHTML = `<svg class="w-full h-full overflow-visible" viewBox="0 0 320 120">`;
+            svgHTML += `<line x1="0" y1="15" x2="320" y2="15" stroke="#f1f5f9" stroke-width="1" />`;
+            svgHTML += `<line x1="0" y1="60" x2="320" y2="60" stroke="#f1f5f9" stroke-width="1" />`;
+            svgHTML += `<line x1="0" y1="105" x2="320" y2="105" stroke="#f1f5f9" stroke-width="1" />`;
+
+            let points = [];
+            let stepX = 300 / Math.max(1, pointsData.length - 1);
+
+            pointsData.forEach((item, idx) => {
+                let x = 15 + (idx * stepX);
+                let y = 105 - (item.val / 100) * 90;
+                points.push({ x, y, val: item.val, label: item.label });
+            });
+
+            let pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            svgHTML += `<path d="${pathD}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>`;
+
+            points.forEach(p => {
+                svgHTML += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#10b981" stroke="#ffffff" stroke-width="2"></circle>`;
+                svgHTML += `<text x="${p.x}" y="${p.y - 7}" font-size="9" font-weight="bold" fill="#047857" text-anchor="middle">${p.val}%</text>`;
+                svgHTML += `<text x="${p.x}" y="117" font-size="9" fill="#64748b" text-anchor="middle">${p.label}</text>`;
+            });
+
+            svgHTML += `</svg>`;
+            container.innerHTML = svgHTML;
+        }
+
+        function renderVolumeChart(history) {
+            const container = document.getElementById('chart-combo-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let monthlyCountMap = {};
+            history.forEach(a => {
+                if (!a.data) return;
+                let mesAno = a.data.slice(0, 7);
+                monthlyCountMap[mesAno] = (monthlyCountMap[mesAno] || 0) + 1;
+            });
+
+            let meses = Object.keys(monthlyCountMap).sort().slice(-6);
+            if (meses.length === 0) {
+                container.innerHTML = `<div class="m-auto text-sm text-slate-400">Sem dados mensais suficientes.</div>`;
+                return;
+            }
+
+            let maxCount = Math.max(...Object.values(monthlyCountMap), 5);
+            let containerHTML = `<div class="flex items-end justify-around h-full w-full gap-3 pt-4 px-2">`;
+            meses.forEach(mesAno => {
+                let count = monthlyCountMap[mesAno];
+                let heightBar = Math.max(15, Math.min(100, (count / maxCount) * 100));
+                let [ano, mes] = mesAno.split('-');
+
+                containerHTML += `
+                    <div class="flex flex-col items-center flex-1 h-full justify-end group max-w-[65px]">
+                        <span class="text-xs font-bold text-indigo-600 mb-1">${count} audit.</span>
+                        <div class="w-full bg-indigo-600 hover:bg-indigo-700 rounded-t-lg transition-all duration-300" style="height: ${heightBar}%"></div>
+                        <span class="text-xs text-slate-500 mt-1">${mes}/${ano}</span>
+                    </div>
+                `;
+            });
+            containerHTML += `</div>`;
+            container.innerHTML = containerHTML;
+        }
+
+        function renderParetoChart(failureCounts) {
+            const container = document.getElementById('chart-pareto-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let sorted = Object.keys(failureCounts).map(item => ({
+                item, count: failureCounts[item]
+            })).sort((a,b) => b.count - a.count).slice(0, 5);
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<div class="m-auto text-sm text-slate-400 py-10 text-center">Nenhuma não-conformidade encontrada para este filtro.</div>`;
+                return;
+            }
+
+            let totalNC = sorted.reduce((acc, curr) => acc + curr.count, 0);
+            let acumulado = 0;
+            let maxCount = sorted[0].count || 1;
+
+            let html = ``;
+            sorted.forEach(f => {
+                acumulado += f.count;
+                let pctAcumulado = totalNC > 0 ? Math.round((acumulado / totalNC) * 100) : 0;
+                let widthPct = Math.max(10, Math.min(100, (f.count / maxCount) * 100));
+
+                html += `
+                    <div class="flex flex-col gap-1 w-full bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-700 truncate pr-2" title="${f.item}">${f.item}</span>
+                            <span class="font-bold text-rose-600 whitespace-nowrap">${f.count} (${pctAcumulado}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: ${widthPct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderMetaRadarChart(metaScores) {
+            const container = document.getElementById('chart-radar-metas');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let hasData = false;
+            let html = '';
+
+            for (let mId in metaScores) {
+                let m = metaScores[mId];
+                if (m.count > 0) {
+                    hasData = true;
+                    let mediaMeta = m.sum / m.count;
+                    let widthPct = Math.max(10, Math.min(100, mediaMeta));
+                    let color = mediaMeta >= 90 ? 'bg-purple-600' : (mediaMeta >= 80 ? 'bg-amber-500' : 'bg-rose-500');
+
+                    html += `
+                        <div class="flex flex-col gap-1.5 w-full bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-bold text-slate-700 truncate">${m.title}</span>
+                                <span class="font-bold text-slate-800">${mediaMeta.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden">
+                                <div class="${color} h-full rounded-full transition-all duration-500" style="width: ${widthPct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            if (!hasData) {
+                container.innerHTML = `<div class="text-sm text-slate-400 py-6 text-center">Realize auditorias para consolidar o desempenho por Meta.</div>`;
+                return;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderRecommendations(history, setorFilter, failureCounts, totalGraves = 0) {
+            const recEl = document.getElementById('quality-recommendations');
+            if (!recEl) return;
+            if (history.length === 0) {
+                recEl.innerHTML = `<p class="text-sm text-slate-400">Realize auditorias para gerar recomendações baseadas em dados.</p>`;
+                return;
+            }
+
+            let topFailure = Object.keys(failureCounts).sort((a,b) => failureCounts[b] - failureCounts[a])[0] || 'Nenhum destaque';
+            let overdueActions = actionPlansCache.filter(a => a.status !== 'Concluído' && a.when < new Date().toISOString().slice(0, 10)).length;
+            let setorTexto = setorFilter ? `no setor <strong>${setorFilter}</strong>` : `em toda a instituição`;
+            
+            recEl.innerHTML = `
+                <div class="space-y-2.5">
+                    ${totalGraves > 0 ? `
+                        <div class="p-3.5 rounded-xl bg-rose-100 border border-rose-300 text-sm text-rose-900 flex items-center gap-2.5">
+                            <i class="fa-solid fa-radiation text-rose-600 text-base"></i>
+                            <span>Atenção à Segurança: Foram registradas <strong>${totalGraves} não-conformidades Graves / Eventos Adversos</strong> ${setorTexto}. Recomenda-se tratativa imediata na Gestão de Risco.</span>
+                        </div>
+                    ` : ''}
+                    <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-800 flex items-center gap-2.5">
+                        <i class="fa-solid fa-circle-info text-blue-600 text-base"></i>
+                        <span>Foco gerencial ${setorTexto}: O principal fator de não-conformidade recorrente é <strong>"${topFailure}"</strong>. Priorize capacitações específicas neste tópico.</span>
+                    </div>
+                    ${overdueActions > 0 ? `
+                        <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-center gap-2.5">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+                            <span>Alerta de Prazos: Existem <strong>${overdueActions} planos de ação vencidos</strong> no 5W2H aguardando conclusão ou atualização pelas lideranças.</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderHistory() {
+            let history = auditHistoryCache;
+            const searchInput = document.getElementById('history-search')?.value.toLowerCase().trim() || '';
+            const scoreFilter = document.getElementById('filter-history-score')?.value || '';
+
+            if (searchInput) {
+                history = history.filter(a => (a.setor && a.setor.toLowerCase().includes(searchInput)) || (a.leito && a.leito.toLowerCase().includes(searchInput)) || (a.enfermeiro && a.enfermeiro.toLowerCase().includes(searchInput)));
+            }
+            if (scoreFilter) {
+                history = history.filter(a => {
+                    if (scoreFilter === 'good') return a.pontuacaoGeral >= 90;
+                    if (scoreFilter === 'warning') return a.pontuacaoGeral >= 80 && a.pontuacaoGeral < 90;
+                    if (scoreFilter === 'critical') return a.pontuacaoGeral < 80;
+                    return true;
+                });
+            }
+
+            const tbody = document.getElementById('history-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-slate-400">Nenhuma auditoria encontrada.</td></tr>`;
+                return;
+            }
+
+            history.forEach(audit => {
+                let badgeColor = audit.pontuacaoGeral < 80 ? 'bg-rose-100 text-rose-800' : (audit.pontuacaoGeral < 90 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-3 text-slate-600 font-medium">${audit.data}</td>
+                        <td class="p-3 text-slate-800 font-semibold">${audit.setor} <span class="text-xs text-slate-500 font-normal">(${audit.leito || 'Geral'})</span></td>
+                        <td class="p-3 text-slate-600">${audit.enfermeiro}</td>
+                        <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full text-sm font-bold ${badgeColor}">${audit.pontuacaoGeral}%</span></td>
+                        <td class="p-3 text-right space-x-1.5 no-print">
+                            <button onclick="viewDetails('${audit.fbId || audit.id}')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-sm transition-all"><i class="fa-solid fa-eye"></i> Detalhes</button>
+                            <button onclick="deleteAudit('${audit.fbId || audit.id}')" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold text-sm transition-all"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function viewDetails(id) {
+            const audit = auditHistoryCache.find(a => a.fbId === id || a.id === id);
+            if (!audit) return;
+
+            let contentHTML = `
+                <div class="grid grid-cols-2 gap-2.5 bg-slate-50 p-3.5 rounded-xl text-sm text-slate-600 mb-3.5 border border-slate-200">
+                    <div><strong>Setor:</strong> ${audit.setor}</div>
+                    <div><strong>Leito/ID:</strong> ${audit.leito || 'Não informado'}</div>
+                    <div><strong>Data:</strong> ${audit.data}</div>
+                    <div><strong>Enfermeiro(a):</strong> ${audit.enfermeiro}</div>
+                    <div class="col-span-2"><strong>Pontuação Geral:</strong> <span class="font-bold text-blue-600">${audit.pontuacaoGeral}%</span></div>
+                </div><div class="space-y-3.5">
+            `;
+
+            for (let mKey in audit.metas) {
+                let m = audit.metas[mKey];
+                let itemsDetailHTML = '';
+                m.items.forEach(it => {
+                    let badgeStatus = it.status === 'NC' ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">NC</span>' : (it.status === 'NA' ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">NA</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">C</span>');
+                    let sevColor = it.severity === 'Grave/Evento Adverso' ? 'bg-rose-600 text-white' : 'bg-amber-100 text-amber-800';
+                    let sevBadge = (it.status === 'NC' && it.severity) ? `<span class="ml-1.5 px-1.5 py-0.5 rounded text-[11px] ${sevColor} font-bold">Risco: ${it.severity}</span>` : '';
+                    itemsDetailHTML += `<div class="py-2 border-b border-slate-100 text-sm flex justify-between items-center"><span class="text-slate-700 font-medium">${it.item}</span><div>${badgeStatus}${sevBadge}</div></div>`;
+                });
+                let obsHtml = m.observacao ? `<div class="mt-2 text-sm text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200"><strong>Observação:</strong> ${m.observacao}</div>` : '';
+                contentHTML += `<div class="border border-slate-200 rounded-xl p-3"><div class="flex justify-between items-center mb-2"><span class="font-bold text-slate-800 text-sm">${m.title}</span><span class="text-sm font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded">Conf: ${m.percentual}%</span></div><div class="space-y-1">${itemsDetailHTML}</div>${obsHtml}</div>`;
+            }
+
+            if (audit.signature) {
+                contentHTML += `<div class="mt-3.5 border-t pt-2.5"><p class="text-xs font-semibold text-slate-500 mb-1.5">Assinatura do Auditor:</p><img src="${audit.signature}" alt="Assinatura" class="h-20 border rounded-lg bg-slate-50 p-1.5"></div>`;
+            }
+            contentHTML += `</div>`;
+            document.getElementById('modal-content').innerHTML = contentHTML;
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+
+        async function deleteAudit(id) {
+            requestPassword(async () => {
+                if (!confirm('Deseja realmente excluir?')) return;
+                try {
+                    const target = auditHistoryCache.find(a => a.fbId === id || a.id === id);
+                    if (target && target.fbId && window.fbDb) {
+                        await window.fbDeleteDoc(window.fbDoc(window.fbDb, "auditorias", target.fbId));
+                    }
+                    auditHistoryCache = auditHistoryCache.filter(a => a.id !== id && a.fbId !== id);
+                    localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                    renderDashboard(); renderHistory();
+                    showAlert('Excluído com sucesso.', 'success');
+                } catch (e) {
+                    auditHistoryCache = auditHistoryCache.filter(a => a.id !== id && a.fbId !== id);
+                    localStorage.setItem('auditHistoryCache', JSON.stringify(auditHistoryCache));
+                    renderDashboard(); renderHistory();
+                    showAlert('Excluído localmente.', 'success');
+                }
+            });
+        }
+
+        async function clearHistory() {
+            requestPassword(async () => {
+                if (!confirm('Apagar todo o histórico permanentemente?')) return;
+                try {
+                    for (let audit of auditHistoryCache) {
+                        if (audit.fbId && window.fbDb) await window.fbDeleteDoc(window.fbDoc(window.fbDb, "auditorias", audit.fbId));
+                    }
+                    auditHistoryCache = [];
+                    localStorage.removeItem('auditHistoryCache');
+                    renderDashboard(); renderHistory();
+                    showAlert('Histórico limpo.', 'success');
+                } catch (e) {
+                    auditHistoryCache = [];
+                    localStorage.removeItem('auditHistoryCache');
+                    renderDashboard(); renderHistory();
+                    showAlert('Histórico local limpo.', 'success');
+                }
+            });
+        }
+
+        function renderActionPlans() {
+            let actions = actionPlansCache;
+            const setorFilter = document.getElementById('filter-action-setor')?.value || '';
+
+            const actionSetorSelect = document.getElementById('filter-action-setor');
+            const activeActions = actionPlansCache.filter(a => a.status !== 'Concluído');
+            const setoresComPendencias = [...new Set(activeActions.map(a => a.where))].sort();
+            
+            let opts = '<option value="">Todos os Setores (Com Pendência)</option>';
+            setoresComPendencias.forEach(s => { 
+                opts += `<option value="${s}" ${s === setorFilter ? 'selected' : ''}>${s}</option>`; 
+            });
+            if (actionSetorSelect) actionSetorSelect.innerHTML = opts;
+
+            if (setorFilter) actions = actions.filter(a => a.where === setorFilter);
+
+            const tbody = document.getElementById('actionplans-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (actions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-5 text-center text-slate-400">Nenhum plano de ação correspondente encontrado.</td></tr>`;
+                return;
+            }
+
+            const todayStr = new Date().toISOString().slice(0, 10);
+            actions.forEach(act => {
+                let statusColor = act.status === 'Concluído' ? 'bg-emerald-100 text-emerald-800' : (act.status === 'Em Andamento' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800');
+                let dateBadge = act.when;
+                if (act.status !== 'Concluído' && act.when < todayStr) {
+                    dateBadge = `<span class="text-rose-600 font-bold flex items-center gap-1" title="Prazo vencido"><i class="fa-solid fa-triangle-exclamation"></i> ${act.when} (Vencido)</span>`;
+                }
+                let evidenceText = act.closingEvidence ? `<br><span class="text-xs text-emerald-700"><strong>Solução:</strong> ${act.closingEvidence}</span>` : '';
+                let metaBadgeTag = act.metaTitle ? `<span class="inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-1 mr-1">${act.metaTitle}</span>` : '';
+                let priorityTag = act.priority === 'Urgente' ? `<span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-rose-600 text-white mb-1"><i class="fa-solid fa-bolt"></i> Urgente</span>` : '';
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-3 text-slate-800 font-semibold">${metaBadgeTag}${priorityTag}${metaBadgeTag || priorityTag ? '<br>' : ''}${act.what}</td>
+                        <td class="p-3 text-slate-600 text-sm">${act.why}${evidenceText}</td>
+                        <td class="p-3 text-slate-600 font-medium">${act.where}</td>
+                        <td class="p-3 text-slate-600">${act.who}</td>
+                        <td class="p-3 text-slate-600">${dateBadge}</td>
+                        <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${statusColor}">${act.status}</span></td>
+                        <td class="p-3 text-right space-x-1.5 no-print">
+                            <button onclick="toggleActionStatus('${act.fbId || act.id}')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-sm transition-all" title="Avançar Status"><i class="fa-solid fa-sync"></i></button>
+                            <button onclick="deleteAction('${act.fbId || act.id}')" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold text-sm transition-all"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openNewActionModal() {
+            ['action-what', 'action-why', 'action-where', 'action-who', 'action-how'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('action-priority').value = 'Normal';
+            document.getElementById('action-when').valueAsDate = new Date();
+            document.getElementById('action-modal').classList.remove('hidden');
+        }
+
+        function closeActionModal() { document.getElementById('action-modal').classList.add('hidden'); }
+
+        async function saveActionPlan() {
+            const metaTitle = document.getElementById('action-meta-title').value;
+            const priority = document.getElementById('action-priority').value;
+            const what = document.getElementById('action-what').value.trim();
+            const why = document.getElementById('action-why').value.trim();
+            const where = document.getElementById('action-where').value.trim();
+            const who = document.getElementById('action-who').value.trim();
+            const when = document.getElementById('action-when').value;
+            const how = document.getElementById('action-how').value.trim();
+            const status = document.getElementById('action-status').value;
+
+            if (!what || !why || !where || !who || !when) {
+                showAlert('Preencha os campos obrigatórios.', 'error');
+                return;
+            }
+
+            let newAction = { id: 'ACT-' + Date.now(), metaTitle, priority, what, why, where, who, when, how, status, closingEvidence: '' };
+            try {
+                if (window.fbDb && window.fbAddDoc) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "planos_acao"), newAction);
+                } else { throw new Error(); }
+                showAlert('Plano salvo na nuvem!', 'success');
+            } catch (e) {
+                actionPlansCache.push(newAction);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans(); renderDashboard();
+                showAlert('Plano salvo localmente.', 'success');
+            }
+            closeActionModal();
+        }
+
+        async function toggleActionStatus(id) {
+            let act = actionPlansCache.find(a => a.fbId === id || a.id === id);
+            if (!act) return;
+            let nextStatus = act.status === 'Pendente' ? 'Em Andamento' : (act.status === 'Em Andamento' ? 'Concluído' : 'Pendente');
+            
+            if (nextStatus === 'Concluído') {
+                let evidence = prompt('Informe a descrição/evidência de como o problema foi resolvido (eficácia):');
+                if (evidence !== null) act.closingEvidence = evidence;
+            }
+
+            try {
+                if (act.fbId && window.fbDb) {
+                    await window.fbUpdateDoc(window.fbDoc(window.fbDb, "planos_acao", act.fbId), { status: nextStatus, closingEvidence: act.closingEvidence || '' });
+                }
+                act.status = nextStatus;
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans(); renderDashboard();
+            } catch (e) {
+                act.status = nextStatus;
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans(); renderDashboard();
+            }
+        }
+
+        async function deleteAction(id) {
+            if (!confirm('Deseja excluir este plano?')) return;
+            try {
+                let target = actionPlansCache.find(a => a.fbId === id || a.id === id);
+                if (target && target.fbId && window.fbDb) {
+                    await window.fbDeleteDoc(window.fbDoc(window.fbDb, "planos_acao", target.fbId));
+                }
+                actionPlansCache = actionPlansCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans(); renderDashboard();
+                showAlert('Plano excluído.', 'success');
+            } catch (e) {
+                actionPlansCache = actionPlansCache.filter(a => a.id !== id && a.fbId !== id);
+                localStorage.setItem('actionPlansCache', JSON.stringify(actionPlansCache));
+                renderActionPlans(); renderDashboard();
+                showAlert('Plano excluído localmente.', 'success');
+            }
+        }
+
+        function exportCSV() {
+            const history = auditHistoryCache;
+            if (history.length === 0) { showAlert('Sem dados para exportar.', 'error'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,ID;Data;Setor;Leito;Enfermeiro;PontuaçãoGeral\r\n";
+            history.forEach(a => { csvContent += `"${a.id}";"${a.data}";"${a.setor}";"${a.leito || ''}";"${a.enfermeiro}";"${a.pontuacaoGeral}%"\r\n`; });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `auditoria_qualidade_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
